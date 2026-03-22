@@ -64,6 +64,7 @@ private:
     void updateDisplay();
     void setupTestData();
     void runAnalysis(const QString& text);  // Запуск анализа для текста
+    void generateHtmlReport();
 };
 
 #endif // MAINWINDOW_H

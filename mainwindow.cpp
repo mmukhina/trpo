@@ -16,6 +16,76 @@
 #include <QMap>
 #include <QFileDialog>
 
+#include <QDesktopServices>
+#include <QUrl>
+
+void MainWindow::generateHtmlReport()
+{
+    QString fileName = QFileDialog::getSaveFileName(this, "Сохранить отчет",
+                                                    QDir::currentPath() + "/report.html", "HTML файлы (*.html)");
+
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+
+    // Начало HTML и CSS
+    out << "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+    out << "<style>"
+        << "body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 40px; background: #f5f5f5; }"
+        << ".container { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }"
+        << "h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }"
+        << ".sentence-block { margin-bottom: 30px; padding: 15px; background: #fafafa; border-radius: 5px; }"
+        << ".sentence-text { color: #7f8c8d; font-style: italic; margin-bottom: 10px; display: block; }"
+        << ".word { display: inline-block; margin-right: 8px; position: relative; font-size: 18px; cursor: help; padding-bottom: 3px; }"
+
+        // Школьные стили подчеркивания
+        << ".pod { border-bottom: 2px solid #000; } "               // Подлежащее: одна черта
+        << ".skaz { border-bottom: 4px double #000; } "            // Сказуемое: две черты
+        << ".opred { text-decoration: underline wavy #2ecc71; } "  // Определение: волнистая
+        << ".dop { border-bottom: 2px dashed #34495e; } "          // Дополнение: пунктир
+        << ".ob { border-bottom: 2px dotted #e67e22; } "           // Обстоятельство: точка-тире (заменим на точки для простоты)
+        << ".none { border-bottom: none; }"
+
+        // Всплывающая подсказка
+        << ".word:hover::after { content: attr(data-tooltip); position: absolute; bottom: 100%; left: 0; "
+        << "background: #333; color: #fff; padding: 5px; border-radius: 4px; font-size: 12px; white-space: nowrap; z-index: 10; }"
+        << "</style></head><body><div class='container'>";
+
+    out << "<h1>Результаты синтаксического анализа</h1>";
+
+    QList<int> sentNumbers = sentenceTexts.keys();
+    std::sort(sentNumbers.begin(), sentNumbers.end());
+
+    for (int sentNum : sentNumbers) {
+        out << "<div class='sentence-block'>";
+        out << "<span class='sentence-text'>Предложение " << sentNum << ": " << sentenceTexts[sentNum] << "</span>";
+
+        out << "<div class='analysis'>";
+        for (const WordInfo& word : wordsBySentence[sentNum]) {
+            QString type = getRelationType(word.relation);
+            QString desc = getRelationDescription(word.relation);
+            QString tooltip = QString("%1 | %2 | Главное: %3").arg(word.pos).arg(desc).arg(word.headWord);
+
+            out << QString("<span class='word %1' data-tooltip='%2'>%3</span> ")
+                       .arg(type)
+                       .arg(tooltip)
+                       .arg(word.text);
+        }
+        out << "</div></div>";
+    }
+
+    out << "</div></body></html>";
+    file.close();
+
+    // Автоматически открываем файл в браузере
+    QDesktopServices::openUrl(QUrl::fromLocalFile(fileName));
+}
+
+
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
     , ui(new Ui::MainWindow)
@@ -615,6 +685,7 @@ void MainWindow::processPythonOutput(const QString& output)
 
     // Разделяем строки и очищаем от символов \r
     QStringList lines = output.split("\n", Qt::SkipEmptyParts);
+    qDebug() << lines ;
 
     for (QString& line : lines) {
         line = line.trimmed();
@@ -749,7 +820,11 @@ void MainWindow::setupTestData()
     qDebug() << "Тестовые данные созданы";
 }
 
-void MainWindow::on_btn_download_clicked()
-{
-    QMessageBox::information(this, "Скачивание", "Кнопка скачивания нажата");
+void MainWindow::on_btn_download_clicked() {
+    if (sentenceTexts.isEmpty()) {
+        QMessageBox::warning(this, "Внимание", "Сначала проведите анализ текста.");
+        return;
+    }
+    generateHtmlReport();
 }
+
