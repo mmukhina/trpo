@@ -37,7 +37,6 @@ public:
     QPushButton *btn_search;
     QPushButton *btn_upload;
     QPushButton *btn_download;
-    QPushButton *btn_test;
     QFrame *filterFrame;
     QHBoxLayout *horizontalLayout;
     QCheckBox *c_pod;
@@ -57,17 +56,19 @@ public:
             MainWindow->setObjectName("MainWindow");
         MainWindow->resize(1200, 700);
         MainWindow->setStyleSheet(QString::fromUtf8("\n"
-"    /* \320\223\320\273\320\260\320\262\320\275\320\276\320\265 \320\276\320\272\320\275\320\276 */\n"
+"    /* Main window styling - no global QWidget rule */\n"
 "    QMainWindow {\n"
 "        background-color: #f5f7fa;\n"
+"        color: #000000;\n"
 "    }\n"
 "    \n"
-"    /* \320\246\320\265\320\275\321\202\321\200\320\260\320\273\321\214\320\275\321\213\320\271 \320\262\320\270\320\264\320\266\320\265\321\202 */\n"
+"    /* Central widget */\n"
 "    QWidget#centralwidget {\n"
 "        background-color: #f5f7fa;\n"
+"        color: #000000;\n"
 "    }\n"
 "    \n"
-"    /* \320\227\320\260\320\263\320\276\320\273\320\276\320\262\320\276\320\272 \320\276\320\272\320\275\320\260 */\n"
+"    /* Title bar */\n"
 "    QMainWindow::title {\n"
 "        background-color: #2c3e50;\n"
 "        color: white;\n"
@@ -86,6 +87,45 @@ public:
 "            background-color: white;\n"
 "            border-radius: 10px;\n"
 "            padding: 10px;\n"
+"            color: #000000;\n"
+"        }\n"
+"        \n"
+"        QLineEdit {\n"
+"            border: 2px solid #e0e4e8;\n"
+"            border-radius: 8px;\n"
+"            padding: 8px 15px;\n"
+"            font-size: 14px;\n"
+"            background-color: #f8fafc;\n"
+"            color: #000000;\n"
+"        }\n"
+"        QLineEdit:focus {\n"
+"            border-color: #3498db;\n"
+"            background-color: white;\n"
+"            color: #000000;\n"
+"        }\n"
+"        QLineEdit::placeholder {\n"
+"            color: #7f8c8d;\n"
+"        }\n"
+"        \n"
+"        QPushButton {\n"
+"            background-color: #3498db;\n"
+"            color: white;\n"
+"            border: none;\n"
+"            border-radius: 8px;\n"
+"            font-size: 14px;\n"
+"            font-weight: bold;\n"
+"            padding: 8px 20px;\n"
+"        }\n"
+"        QPushButton:hover"
+                        " {\n"
+"            background-color: #2980b9;\n"
+"        }\n"
+"        QPushButton:pressed {\n"
+"            background-color: #1f618d;\n"
+"        }\n"
+"        QPushButton:disabled {\n"
+"            background-color: #bdc3c7;\n"
+"            color: #ecf0f1;\n"
 "        }\n"
 "       "));
         horizontalLayout_2 = new QHBoxLayout(searchFrame);
@@ -93,125 +133,26 @@ public:
         horizontalLayout_2->setContentsMargins(15, 10, 15, 10);
         lineEdit = new QLineEdit(searchFrame);
         lineEdit->setObjectName("lineEdit");
-        lineEdit->setStyleSheet(QString::fromUtf8("\n"
-"           QLineEdit {\n"
-"               border: 2px solid #e0e4e8;\n"
-"               border-radius: 8px;\n"
-"               padding: 8px 15px;\n"
-"               font-size: 14px;\n"
-"               background-color: #f8fafc;\n"
-"           }\n"
-"           QLineEdit:focus {\n"
-"               border-color: #3498db;\n"
-"               background-color: white;\n"
-"           }\n"
-"          "));
 
         horizontalLayout_2->addWidget(lineEdit);
 
         btn_search = new QPushButton(searchFrame);
         btn_search->setObjectName("btn_search");
         btn_search->setMinimumSize(QSize(100, 40));
-        btn_search->setStyleSheet(QString::fromUtf8("\n"
-"           QPushButton {\n"
-"               background-color: #3498db;\n"
-"               color: white;\n"
-"               border: none;\n"
-"               border-radius: 8px;\n"
-"               font-size: 14px;\n"
-"               font-weight: bold;\n"
-"               padding: 8px 20px;\n"
-"           }\n"
-"           QPushButton:hover {\n"
-"               background-color: #2980b9;\n"
-"           }\n"
-"           QPushButton:pressed {\n"
-"               background-color: #1f618d;\n"
-"           }\n"
-"           QPushButton:disabled {\n"
-"               background-color: #bdc3c7;\n"
-"           }\n"
-"          "));
 
         horizontalLayout_2->addWidget(btn_search);
 
         btn_upload = new QPushButton(searchFrame);
         btn_upload->setObjectName("btn_upload");
         btn_upload->setMinimumSize(QSize(100, 40));
-        btn_upload->setStyleSheet(QString::fromUtf8("\n"
-"           QPushButton {\n"
-"               background-color: #3498db;\n"
-"               color: white;\n"
-"               border: none;\n"
-"               border-radius: 8px;\n"
-"               font-size: 14px;\n"
-"               font-weight: bold;\n"
-"               padding: 8px 20px;\n"
-"           }\n"
-"           QPushButton:hover {\n"
-"               background-color: #2980b9;\n"
-"           }\n"
-"           QPushButton:pressed {\n"
-"               background-color: #1f618d;\n"
-"           }\n"
-"           QPushButton:disabled {\n"
-"               background-color: #bdc3c7;\n"
-"           }\n"
-"          "));
 
         horizontalLayout_2->addWidget(btn_upload);
 
         btn_download = new QPushButton(searchFrame);
         btn_download->setObjectName("btn_download");
         btn_download->setMinimumSize(QSize(100, 40));
-        btn_download->setStyleSheet(QString::fromUtf8("\n"
-"           QPushButton {\n"
-"               background-color: #3498db;\n"
-"               color: white;\n"
-"               border: none;\n"
-"               border-radius: 8px;\n"
-"               font-size: 14px;\n"
-"               font-weight: bold;\n"
-"               padding: 8px 20px;\n"
-"           }\n"
-"           QPushButton:hover {\n"
-"               background-color: #2980b9;\n"
-"           }\n"
-"           QPushButton:pressed {\n"
-"               background-color: #1f618d;\n"
-"           }\n"
-"           QPushButton:disabled {\n"
-"               background-color: #bdc3c7;\n"
-"           }\n"
-"          "));
 
         horizontalLayout_2->addWidget(btn_download);
-
-        btn_test = new QPushButton(searchFrame);
-        btn_test->setObjectName("btn_test");
-        btn_test->setMinimumSize(QSize(100, 40));
-        btn_test->setStyleSheet(QString::fromUtf8("\n"
-"           QPushButton {\n"
-"               background-color: #3498db;\n"
-"               color: white;\n"
-"               border: none;\n"
-"               border-radius: 8px;\n"
-"               font-size: 14px;\n"
-"               font-weight: bold;\n"
-"               padding: 8px 20px;\n"
-"           }\n"
-"           QPushButton:hover {\n"
-"               background-color: #2980b9;\n"
-"           }\n"
-"           QPushButton:pressed {\n"
-"               background-color: #1f618d;\n"
-"           }\n"
-"           QPushButton:disabled {\n"
-"               background-color: #bdc3c7;\n"
-"           }\n"
-"          "));
-
-        horizontalLayout_2->addWidget(btn_test);
 
 
         gridLayout->addWidget(searchFrame, 0, 0, 1, 1);
@@ -223,6 +164,31 @@ public:
 "            background-color: white;\n"
 "            border-radius: 10px;\n"
 "            padding: 5px;\n"
+"            color: #000000;\n"
+"        }\n"
+"        \n"
+"        QCheckBox {\n"
+"            spacing: 8px;\n"
+"            font-size: 13px;\n"
+"            color: #000000;\n"
+"        }\n"
+"        QCheckBox::indicator {\n"
+"            width: 18px;\n"
+"            height: 18px;\n"
+"            border-radius: 4px;\n"
+"            border: 2px solid #e0e4e8;\n"
+"        }\n"
+"        QCheckBox::indicator:checked {\n"
+"            background-color: #3498db;\n"
+"            border-color: #3498db;\n"
+"        }\n"
+"        QCheckBox::indicator:hover {\n"
+"            border-color: #3498db;\n"
+"        }\n"
+"        \n"
+"        QCheckBox#c_all {\n"
+"            font-weight: bold;\n"
+"            color: #3498db;\n"
 "        }\n"
 "       "));
         horizontalLayout = new QHBoxLayout(filterFrame);
@@ -230,151 +196,38 @@ public:
         horizontalLayout->setContentsMargins(15, 5, 15, 5);
         c_pod = new QCheckBox(filterFrame);
         c_pod->setObjectName("c_pod");
-        c_pod->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_pod->setEnabled(true);
+        c_pod->setChecked(true);
 
         horizontalLayout->addWidget(c_pod);
 
         c_skaz = new QCheckBox(filterFrame);
         c_skaz->setObjectName("c_skaz");
-        c_skaz->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_skaz->setChecked(true);
 
         horizontalLayout->addWidget(c_skaz);
 
         c_opred = new QCheckBox(filterFrame);
         c_opred->setObjectName("c_opred");
-        c_opred->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_opred->setChecked(true);
 
         horizontalLayout->addWidget(c_opred);
 
         c_dop = new QCheckBox(filterFrame);
         c_dop->setObjectName("c_dop");
-        c_dop->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_dop->setChecked(true);
 
         horizontalLayout->addWidget(c_dop);
 
         c_ob = new QCheckBox(filterFrame);
         c_ob->setObjectName("c_ob");
-        c_ob->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_ob->setChecked(true);
 
         horizontalLayout->addWidget(c_ob);
 
         c_none = new QCheckBox(filterFrame);
         c_none->setObjectName("c_none");
-        c_none->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               color: #2c3e50;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_none->setChecked(true);
 
         horizontalLayout->addWidget(c_none);
 
@@ -384,27 +237,7 @@ public:
 
         c_all = new QCheckBox(filterFrame);
         c_all->setObjectName("c_all");
-        c_all->setStyleSheet(QString::fromUtf8("\n"
-"           QCheckBox {\n"
-"               spacing: 8px;\n"
-"               font-size: 13px;\n"
-"               font-weight: bold;\n"
-"               color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator {\n"
-"               width: 18px;\n"
-"               height: 18px;\n"
-"               border-radius: 4px;\n"
-"               border: 2px solid #e0e4e8;\n"
-"           }\n"
-"           QCheckBox::indicator:checked {\n"
-"               background-color: #3498db;\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"           QCheckBox::indicator:hover {\n"
-"               border-color: #3498db;\n"
-"           }\n"
-"          "));
+        c_all->setChecked(true);
 
         horizontalLayout->addWidget(c_all);
 
@@ -427,17 +260,20 @@ public:
 "            padding: 10px;\n"
 "            font-size: 13px;\n"
 "            alternate-background-color: #f8fafc;\n"
+"            color: #000000;\n"
 "        }\n"
 "        QTreeWidget::item {\n"
 "            padding: 8px;\n"
 "            border-bottom: 1px solid #e0e4e8;\n"
+"            color: #000000;\n"
 "        }\n"
 "        QTreeWidget::item:hover {\n"
 "            background-color: #f0f4f8;\n"
+"            color: #000000;\n"
 "        }\n"
 "        QTreeWidget::item:selected {\n"
 "            background-color: #e1f0fa;\n"
-"            color: #2c3e50;\n"
+"            color: #000000;\n"
 "        }\n"
 "        QHeaderView::section {\n"
 "            background-color: #f8fafc;\n"
@@ -445,7 +281,7 @@ public:
 "            border: none;\n"
 "            border-bottom: 2px solid #3498db;\n"
 "            font-weight: bold;\n"
-"            color: #2c3e50;\n"
+"            color: #000000;\n"
 "        }\n"
 "       "));
         treeWidget->setAlternatingRowColors(true);
@@ -483,7 +319,6 @@ public:
         btn_search->setText(QCoreApplication::translate("MainWindow", "\320\237\320\276\320\270\321\201\320\272", nullptr));
         btn_upload->setText(QCoreApplication::translate("MainWindow", "\320\227\320\260\320\263\321\200\321\203\320\267\320\270\321\202\321\214", nullptr));
         btn_download->setText(QCoreApplication::translate("MainWindow", "\320\241\320\272\320\260\321\207\320\260\321\202\321\214", nullptr));
-        btn_test->setText(QCoreApplication::translate("MainWindow", "\320\242\320\265\321\201\321\202", nullptr));
         c_pod->setText(QCoreApplication::translate("MainWindow", "\320\237\320\276\320\264\320\273\320\265\320\266\320\260\321\211\320\265\320\265", nullptr));
         c_skaz->setText(QCoreApplication::translate("MainWindow", "\320\241\320\272\320\260\320\267\321\203\320\265\320\274\320\276\320\265", nullptr));
         c_opred->setText(QCoreApplication::translate("MainWindow", "\320\236\320\277\321\200\320\265\320\264\320\265\320\273\320\265\320\275\320\270\320\265", nullptr));

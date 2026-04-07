@@ -51,7 +51,6 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         "on_btn_search_clicked",
         "on_btn_upload_clicked",
         "on_btn_download_clicked",
-        "on_btn_test_clicked",
         "handlePythonOutput",
         "handlePythonError",
         "handlePythonFinished",
@@ -95,15 +94,13 @@ template <> constexpr inline auto MainWindow::qt_create_metaobjectdata<qt_meta_t
         QtMocHelpers::SlotData<void()>(11, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'on_btn_download_clicked'
         QtMocHelpers::SlotData<void()>(12, 2, QMC::AccessPrivate, QMetaType::Void),
-        // Slot 'on_btn_test_clicked'
-        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'handlePythonOutput'
-        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(13, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'handlePythonError'
-        QtMocHelpers::SlotData<void()>(15, 2, QMC::AccessPrivate, QMetaType::Void),
+        QtMocHelpers::SlotData<void()>(14, 2, QMC::AccessPrivate, QMetaType::Void),
         // Slot 'handlePythonFinished'
-        QtMocHelpers::SlotData<void(int, QProcess::ExitStatus)>(16, 2, QMC::AccessPrivate, QMetaType::Void, {{
-            { QMetaType::Int, 17 }, { 0x80000000 | 18, 19 },
+        QtMocHelpers::SlotData<void(int, QProcess::ExitStatus)>(15, 2, QMC::AccessPrivate, QMetaType::Void, {{
+            { QMetaType::Int, 16 }, { 0x80000000 | 17, 18 },
         }}),
     };
     QtMocHelpers::UintData qt_properties {
@@ -138,10 +135,9 @@ void MainWindow::qt_static_metacall(QObject *_o, QMetaObject::Call _c, int _id, 
         case 7: _t->on_btn_search_clicked(); break;
         case 8: _t->on_btn_upload_clicked(); break;
         case 9: _t->on_btn_download_clicked(); break;
-        case 10: _t->on_btn_test_clicked(); break;
-        case 11: _t->handlePythonOutput(); break;
-        case 12: _t->handlePythonError(); break;
-        case 13: _t->handlePythonFinished((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QProcess::ExitStatus>>(_a[2]))); break;
+        case 10: _t->handlePythonOutput(); break;
+        case 11: _t->handlePythonError(); break;
+        case 12: _t->handlePythonFinished((*reinterpret_cast<std::add_pointer_t<int>>(_a[1])),(*reinterpret_cast<std::add_pointer_t<QProcess::ExitStatus>>(_a[2]))); break;
         default: ;
         }
     }
@@ -166,14 +162,14 @@ int MainWindow::qt_metacall(QMetaObject::Call _c, int _id, void **_a)
     if (_id < 0)
         return _id;
     if (_c == QMetaObject::InvokeMetaMethod) {
-        if (_id < 14)
+        if (_id < 13)
             qt_static_metacall(this, _c, _id, _a);
-        _id -= 14;
+        _id -= 13;
     }
     if (_c == QMetaObject::RegisterMethodArgumentMetaType) {
-        if (_id < 14)
+        if (_id < 13)
             *reinterpret_cast<QMetaType *>(_a[0]) = QMetaType();
-        _id -= 14;
+        _id -= 13;
     }
     return _id;
 }

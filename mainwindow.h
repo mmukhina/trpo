@@ -12,9 +12,8 @@ QT_END_NAMESPACE
 // Структура для хранения информации о слове
 struct WordInfo {
     QString text;
-    QString pos;
-    QString relation;
-    QString headWord;
+    QString speech;
+    QString sentence;
     int sentenceNum;
 };
 
@@ -37,7 +36,6 @@ private slots:
     void on_btn_search_clicked();
     void on_btn_upload_clicked();
     void on_btn_download_clicked();
-    void on_btn_test_clicked();
 
     void handlePythonOutput();
     void handlePythonError();
@@ -58,13 +56,12 @@ private:
     QString createTempFileWithText(const QString& text);
     bool loadFile(const QString& filePath);  // Загрузка файла
     void processPythonOutput(const QString& output);
-    QString getRelationDescription(const QString& relation);
-    QString getRelationType(const QString& relation);
     bool shouldShowWord(const WordInfo& word);
     void updateDisplay();
-    void setupTestData();
     void runAnalysis(const QString& text);  // Запуск анализа для текста
     void generateHtmlReport();
+    bool callNatasha(const QString path);
+    bool hasAnyLetter(const QString& text);
 };
 
 #endif // MAINWINDOW_H

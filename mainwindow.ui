@@ -15,17 +15,19 @@
   </property>
   <property name="styleSheet">
    <string notr="true">
-    /* Главное окно */
+    /* Main window styling - no global QWidget rule */
     QMainWindow {
         background-color: #f5f7fa;
+        color: #000000;
     }
     
-    /* Центральный виджет */
+    /* Central widget */
     QWidget#centralwidget {
         background-color: #f5f7fa;
+        color: #000000;
     }
     
-    /* Заголовок окна */
+    /* Title bar */
     QMainWindow::title {
         background-color: #2c3e50;
         color: white;
@@ -57,6 +59,44 @@
             background-color: white;
             border-radius: 10px;
             padding: 10px;
+            color: #000000;
+        }
+        
+        QLineEdit {
+            border: 2px solid #e0e4e8;
+            border-radius: 8px;
+            padding: 8px 15px;
+            font-size: 14px;
+            background-color: #f8fafc;
+            color: #000000;
+        }
+        QLineEdit:focus {
+            border-color: #3498db;
+            background-color: white;
+            color: #000000;
+        }
+        QLineEdit::placeholder {
+            color: #7f8c8d;
+        }
+        
+        QPushButton {
+            background-color: #3498db;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: bold;
+            padding: 8px 20px;
+        }
+        QPushButton:hover {
+            background-color: #2980b9;
+        }
+        QPushButton:pressed {
+            background-color: #1f618d;
+        }
+        QPushButton:disabled {
+            background-color: #bdc3c7;
+            color: #ecf0f1;
         }
        </string>
       </property>
@@ -75,21 +115,6 @@
        </property>
        <item>
         <widget class="QLineEdit" name="lineEdit">
-         <property name="styleSheet">
-          <string notr="true">
-           QLineEdit {
-               border: 2px solid #e0e4e8;
-               border-radius: 8px;
-               padding: 8px 15px;
-               font-size: 14px;
-               background-color: #f8fafc;
-           }
-           QLineEdit:focus {
-               border-color: #3498db;
-               background-color: white;
-           }
-          </string>
-         </property>
          <property name="placeholderText">
           <string>Введите текст для анализа...</string>
          </property>
@@ -102,28 +127,6 @@
            <width>100</width>
            <height>40</height>
           </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">
-           QPushButton {
-               background-color: #3498db;
-               color: white;
-               border: none;
-               border-radius: 8px;
-               font-size: 14px;
-               font-weight: bold;
-               padding: 8px 20px;
-           }
-           QPushButton:hover {
-               background-color: #2980b9;
-           }
-           QPushButton:pressed {
-               background-color: #1f618d;
-           }
-           QPushButton:disabled {
-               background-color: #bdc3c7;
-           }
-          </string>
          </property>
          <property name="text">
           <string>Поиск</string>
@@ -138,28 +141,6 @@
            <height>40</height>
           </size>
          </property>
-         <property name="styleSheet">
-          <string notr="true">
-           QPushButton {
-               background-color: #3498db;
-               color: white;
-               border: none;
-               border-radius: 8px;
-               font-size: 14px;
-               font-weight: bold;
-               padding: 8px 20px;
-           }
-           QPushButton:hover {
-               background-color: #2980b9;
-           }
-           QPushButton:pressed {
-               background-color: #1f618d;
-           }
-           QPushButton:disabled {
-               background-color: #bdc3c7;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Загрузить</string>
          </property>
@@ -173,65 +154,8 @@
            <height>40</height>
           </size>
          </property>
-         <property name="styleSheet">
-          <string notr="true">
-           QPushButton {
-               background-color: #3498db;
-               color: white;
-               border: none;
-               border-radius: 8px;
-               font-size: 14px;
-               font-weight: bold;
-               padding: 8px 20px;
-           }
-           QPushButton:hover {
-               background-color: #2980b9;
-           }
-           QPushButton:pressed {
-               background-color: #1f618d;
-           }
-           QPushButton:disabled {
-               background-color: #bdc3c7;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Скачать</string>
-         </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QPushButton" name="btn_test">
-         <property name="minimumSize">
-          <size>
-           <width>100</width>
-           <height>40</height>
-          </size>
-         </property>
-         <property name="styleSheet">
-          <string notr="true">
-           QPushButton {
-               background-color: #3498db;
-               color: white;
-               border: none;
-               border-radius: 8px;
-               font-size: 14px;
-               font-weight: bold;
-               padding: 8px 20px;
-           }
-           QPushButton:hover {
-               background-color: #2980b9;
-           }
-           QPushButton:pressed {
-               background-color: #1f618d;
-           }
-           QPushButton:disabled {
-               background-color: #bdc3c7;
-           }
-          </string>
-         </property>
-         <property name="text">
-          <string>Тест</string>
          </property>
         </widget>
        </item>
@@ -246,6 +170,31 @@
             background-color: white;
             border-radius: 10px;
             padding: 5px;
+            color: #000000;
+        }
+        
+        QCheckBox {
+            spacing: 8px;
+            font-size: 13px;
+            color: #000000;
+        }
+        QCheckBox::indicator {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+            border: 2px solid #e0e4e8;
+        }
+        QCheckBox::indicator:checked {
+            background-color: #3498db;
+            border-color: #3498db;
+        }
+        QCheckBox::indicator:hover {
+            border-color: #3498db;
+        }
+        
+        QCheckBox#c_all {
+            font-weight: bold;
+            color: #3498db;
         }
        </string>
       </property>
@@ -264,175 +213,64 @@
        </property>
        <item>
         <widget class="QCheckBox" name="c_pod">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
+         <property name="enabled">
+          <bool>true</bool>
          </property>
          <property name="text">
           <string>Подлежащее</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="c_skaz">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Сказуемое</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="c_opred">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Определение</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="c_dop">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Дополнение</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="c_ob">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Обстоятельство</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QCheckBox" name="c_none">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               color: #2c3e50;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Другое</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -451,31 +289,11 @@
        </item>
        <item>
         <widget class="QCheckBox" name="c_all">
-         <property name="styleSheet">
-          <string notr="true">
-           QCheckBox {
-               spacing: 8px;
-               font-size: 13px;
-               font-weight: bold;
-               color: #3498db;
-           }
-           QCheckBox::indicator {
-               width: 18px;
-               height: 18px;
-               border-radius: 4px;
-               border: 2px solid #e0e4e8;
-           }
-           QCheckBox::indicator:checked {
-               background-color: #3498db;
-               border-color: #3498db;
-           }
-           QCheckBox::indicator:hover {
-               border-color: #3498db;
-           }
-          </string>
-         </property>
          <property name="text">
           <string>Выбрать все</string>
+         </property>
+         <property name="checked">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -493,17 +311,20 @@
             padding: 10px;
             font-size: 13px;
             alternate-background-color: #f8fafc;
+            color: #000000;
         }
         QTreeWidget::item {
             padding: 8px;
             border-bottom: 1px solid #e0e4e8;
+            color: #000000;
         }
         QTreeWidget::item:hover {
             background-color: #f0f4f8;
+            color: #000000;
         }
         QTreeWidget::item:selected {
             background-color: #e1f0fa;
-            color: #2c3e50;
+            color: #000000;
         }
         QHeaderView::section {
             background-color: #f8fafc;
@@ -511,7 +332,7 @@
             border: none;
             border-bottom: 2px solid #3498db;
             font-weight: bold;
-            color: #2c3e50;
+            color: #000000;
         }
        </string>
       </property>
