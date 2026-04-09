@@ -3,65 +3,110 @@ import sys
 from natasha import Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger, NewsSyntaxParser, Doc
 
 # Инициализация компонентов Natasha
-segmenter = Segmenter()              # Сегментатор токенов
-morph_vocab = MorphVocab()           # Словарь для лемматизации
-embedding = NewsEmbedding()          # Векторные представления
-morph_tagger = NewsMorphTagger(embedding)  # Морфологический таггер
-syntax_parser = NewsSyntaxParser(embedding)  # Синтаксический парсер
+segmenter = Segmenter()
+morph_vocab = MorphVocab()
+embedding = NewsEmbedding()
+morph_tagger = NewsMorphTagger(embedding)
+syntax_parser = NewsSyntaxParser(embedding)
 
-def get_relation_description(relation):
+def get_conj_member_info(token, sent):
     """
-    Получение русского описания синтаксической связи
-    Аналог getRelationDescription из C++
+    Определяет тип и русское описание для однородного члена предложения (relation == 'conj').
+    Рекурсивно поднимается по дереву зависимостей до главного слова.
+    Возвращает кортеж: (тип_фильтра, русское_описание)
     """
-    desc = {
-        "nsubj": "Подлежащее",
-        "obj": "Дополнение",
-        "iobj": "Дополнение",
-        "obl": "Дополнение",
-        "amod": "Определение",
-        "det": "Определение",
-        "nmod": "Определение",
-        "advmod": "Обстоятельство",
-        "advcl": "Обстоятельство",
-        "root": "Сказуемое",
-        "cop": "Связка",
-        "case": "Предлог",
-        "conj": "Союз",
-        "mark": "Союз",
-        "parataxis": "Обстоятельство",
-        "nummod": "Числительное",
-        "aux": "Вспомогательный",
-        "punct": "Пунктуация",
-        "cc": "Союз",
-        "acl": "Определение",
-        "xcomp": "Дополнение",
-        "ccomp": "Дополнение"
+    if not hasattr(token, 'head_id') or token.head_id is None:
+        return "none", "Другое"
+    
+    # Ищем главное слово
+    head_token = None
+    for t in sent.tokens:
+        if t.id == token.head_id:
+            head_token = t
+            break
+            
+    if not head_token:
+        return "none", "Другое"
+    
+    rel = head_token.rel
+    
+    # Прямые соответствия
+    mapping = {
+        'nsubj': ("pod", "Подлежащее"),
+        'root': ("skaz", "Сказуемое"),
+        'advcl': ("skaz", "Сказуемое"),
+        'obj': ("dop", "Дополнение"),
+        'iobj': ("dop", "Дополнение"),
+        'obl': ("dop", "Дополнение"),
+        'xcomp': ("dop", "Дополнение"),
+        'ccomp': ("dop", "Дополнение"),
+        'amod': ("opred", "Определение"),
+        'det': ("opred", "Определение"),
+        'nmod': ("opred", "Определение"),
+        'acl': ("opred", "Определение"),
+        'advmod': ("ob", "Обстоятельство"),
+        'parataxis': ("ob", "Обстоятельство"),
     }
-    return desc.get(relation, "Другое")
+    
+    if rel in mapping:
+        return mapping[rel]
+    
+    # Если главное слово тоже однородный член (цепочка: А, Б и В), идем дальше
+    if rel == 'conj':
+        return get_conj_member_info(head_token, sent)
+        
+    return "none", "Другое"
 
-def get_relation_type(relation):
-    """
-    Определение типа отношения для фильтрации
-    Аналог getRelationType из C++
-    """
-    if relation == "nsubj":
-        return "pod"  # подлежащее
-    elif relation == "root" or relation == "advcl":
-        return "skaz"  # сказуемое
-    elif relation in ["amod", "det", "nmod", "acl"]:
-        return "opred"  # определение
-    elif relation in ["obj", "iobj", "obl", "xcomp", "ccomp"]:
-        return "dop"  # дополнение
-    elif relation in ["advmod", "parataxis"]:
-        return "ob"  # обстоятельство
-    else:
-        return "none"
+def get_relation_description(relation, token=None, sent=None):
+    """Получение русского описания синтаксической связи"""
+    base_desc = {
+        "nsubj": "Подлежащее", "obj": "Дополнение", "iobj": "Дополнение", "obl": "Дополнение",
+        "xcomp": "Дополнение", "ccomp": "Дополнение",
+        "amod": "Определение", "det": "Определение", "nmod": "Определение", "acl": "Определение",
+        "advmod": "Обстоятельство", "advcl": "Обстоятельство", "parataxis": "Обстоятельство",
+        "root": "Сказуемое", "cop": "Связка", "case": "Предлог",
+        "cc": "Союз", "mark": "Союз",
+        "nummod": "Числительное", "aux": "Вспомогательный",
+        "punct": "Пунктуация"
+    }
+    
+    # Специальная обработка для однородных членов
+    if relation == "conj" and token and sent:
+        _, desc = get_conj_member_info(token, sent)
+        return desc
+        
+    return base_desc.get(relation, "Другое")
+
+def get_relation_type(relation, token=None, sent=None):
+    """Определение типа отношения для фильтрации в C++"""
+    base_type = {
+        "nsubj": "pod", "obj": "dop", "iobj": "dop", "obl": "dop",
+        "xcomp": "dop", "ccomp": "dop",
+        "amod": "opred", "det": "opred", "nmod": "opred", "acl": "opred",
+        "advmod": "ob", "parataxis": "ob",
+        "root": "skaz", "advcl": "skaz"
+    }
+    
+    if relation == "conj" and token and sent:
+        t, _ = get_conj_member_info(token, sent)
+        return t
+        
+    return base_type.get(relation, "none")
+
+def get_pos_russian(pos):
+    """Получение русского названия части речи"""
+    pos_map = {
+        "NOUN": "существительное", "VERB": "глагол", "ADJ": "прилагательное",
+        "ADV": "наречие", "PRON": "местоимение", "NUM": "числительное",
+        "ADP": "предлог", "CONJ": "союз", "CCONJ": "союз", "PART": "частица",
+        "INTJ": "междометие", "PUNCT": "знак препинания",
+        "PROPN": "имя собственное", "DET": "определитель",
+        "AUX": "вспомогательный глагол", "SPACE": "пробел"
+    }
+    return pos_map.get(pos, pos)
 
 def create_formatted_file(input_file, output_file):
-    """
-    Создание файла с пронумерованными предложениями
-    """
+    """Создание файла с пронумерованными предложениями (для отладки/отчета)"""
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
             text = f.read().strip()
@@ -71,124 +116,99 @@ def create_formatted_file(input_file, output_file):
         
         with open(output_file, 'w', encoding='utf-8') as f:
             for i, sent in enumerate(doc.sents, 1):
-                cleaned_sent = sent.text.strip()
-                if cleaned_sent:
-                    f.write(f"({i}) {cleaned_sent}")
-                    if i < len(doc.sents):
-                        f.write("\n")
+                cleaned = sent.text.strip()
+                if cleaned:
+                    f.write(f"({i}) {cleaned}\n")
         return True
     except Exception as e:
         print(f"Ошибка создания файла: {e}", file=sys.stderr)
         return False
 
 def analyze_syntax(text):
-    """
-    Полный лингвистический анализ с акцентом на синтаксис
-    """
+    """Полный лингвистический анализ текста"""
     doc = Doc(text)
-    # Последовательная обработка компонентами (раздел 2.1)
     doc.segment(segmenter)
     doc.tag_morph(morph_tagger)
     doc.parse_syntax(syntax_parser)
-
-    # Лемматизация
     for token in doc.tokens:
         token.lemmatize(morph_vocab)
-
     return doc
 
 def extract_syntax_relations(doc):
-    """
-    Извлечение синтаксических связей между токенами.
-    Формат вывода:
-    - SENT|номер|текст_предложения (для оригинального текста)
-    - Слово|POS|Relation|Head_Word|Sentence_Num|Relation_Type|Relation_Desc (для токенов)
-    """
+    """Извлечение синтаксических связей. Формат: 8 полей, разделенных '|'"""
     relations = []
+    
     for sent_num, sent in enumerate(doc.sents, 1):
-        # Выводим оригинальное предложение целиком
         original_text = sent.text.strip()
+        if not original_text:
+            continue
+            
         relations.append(f"SENT|{sent_num}|{original_text}")
         
         for token in sent.tokens:
-            # Пропускаем пробелы и пунктуацию
-            if token.pos == 'SPACE' or token.pos == 'PUNCT':
+            # Пропускаем пробелы и знаки препинания
+            if token.pos in ('SPACE', 'PUNCT'):
                 continue
-            
-            # Получаем информацию о главном слове
+                
             head_word = "_"
-            head_id = getattr(token, 'head_id', None)
-            
-            if head_id is not None:
-                for head_token in sent.tokens:
-                    if head_token.id == head_id:
-                        head_word = head_token.text
+            if token.head_id is not None:
+                for h in sent.tokens:
+                    if h.id == token.head_id:
+                        head_word = h.text
                         break
+                        
+            # Передаем token и sent для корректного определения conj
+            relation_type = get_relation_type(token.rel, token, sent)
+            relation_desc = get_relation_description(token.rel, token, sent)
+            pos_ru = get_pos_russian(token.pos)
             
-            # Получаем преобразованные типы отношений
-            relation_type = get_relation_type(token.rel)
-            relation_desc = get_relation_description(token.rel)
-            
-            # Формируем строку результата с дополнительными полями
-            # Формат: слово|POS|relation|head_word|sent_num|relation_type|relation_desc
-            relations.append(f"{token.text}|{token.pos}|{token.rel}|{head_word}|{sent_num}|{relation_type}|{relation_desc}")
+            # Формируем строку: 0-text, 1-POS, 2-rel, 3-head, 4-sent_num, 5-type, 6-desc, 7-pos_ru
+            relations.append(f"{token.text}|{token.pos}|{token.rel}|{head_word}|{sent_num}|{relation_type}|{relation_desc}|{pos_ru}")
             
     return relations
 
 def process_text(text):
-    """
-    Основная функция обработки (точка входа)
-    """
+    """Основная функция обработки"""
+    text = text.strip()
+    if not text:
+        return None
     try:
         doc = analyze_syntax(text)
-        relations = extract_syntax_relations(doc)
-        return relations
+        return extract_syntax_relations(doc)
     except Exception as e:
-        print(f"Ошибка при анализе текста: {e}", file=sys.stderr)
+        print(f"Ошибка анализа: {e}", file=sys.stderr)
         return None
 
 def main():
-    """
-    Обработка аргументов командной строки
-    """
     if len(sys.argv) < 2:
         print("Укажите путь к файлу для анализа")
         return
-    
+        
     input_file = sys.argv[1]
-
     if not os.path.exists(input_file):
         print(f"Файл не найден: {input_file}")
         return
-
-    # Создаем форматированный файл с нумерацией
+        
+    # Создаем форматированный файл (нужен для C++ парсера)
     base_name = os.path.splitext(input_file)[0]
     formatted_file = f"{base_name}_formatted.txt"
-
     if create_formatted_file(input_file, formatted_file):
         print(f"FORMATTED_FILE:{formatted_file}")
-
-    # Чтение текста
+        
+    # Читаем и анализируем
     try:
         with open(input_file, 'r', encoding='utf-8') as f:
-            text = f.read().strip()
+            text = f.read()
     except Exception as e:
-        print(f"Ошибка чтения файла: {e}")
+        print(f"Ошибка чтения: {e}", file=sys.stderr)
         return
-
-    if not text:
-        print("Файл пустой")
-        return
-
-    # Запуск анализа
+        
     results = process_text(text)
-
     if results:
-        # Вывод в stdout для перехвата C++ программой
-        for item in results:
-            print(item)
+        for line in results:
+            print(line)
     else:
-        print("Анализ не дал результатов")
+        print("Анализ не дал результатов", file=sys.stderr)
 
 if __name__ == "__main__":
     main()

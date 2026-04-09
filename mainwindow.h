@@ -4,6 +4,9 @@
 #include <QMainWindow>
 #include <QProcess>
 #include <QTreeWidgetItem>
+#include <QLabel>
+#include <QTextBrowser>
+#include <QMap>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -15,6 +18,24 @@ struct WordInfo {
     QString speech;
     QString sentence;
     int sentenceNum;
+    QString posRussian;
+};
+
+// Структура для хранения статистики
+struct Statistics {
+    int podlezhaschee = 0;      // Подлежащее
+    int skazuemoe = 0;          // Сказуемое
+    int opredelenie = 0;        // Определение
+    int dopolnenie = 0;         // Дополнение
+    int obstoyatelstvo = 0;     // Обстоятельство
+    int drugoe = 0;             // Другое
+
+    QMap<int, QList<QString>> podlezhascheeSentences;  // предложение -> список слов
+    QMap<int, QList<QString>> skazuemoeSentences;
+    QMap<int, QList<QString>> opredelenieSentences;
+    QMap<int, QList<QString>> dopolnenieSentences;
+    QMap<int, QList<QString>> obstoyatelstvoSentences;
+    QMap<int, QList<QString>> drugoeSentences;
 };
 
 class MainWindow : public QMainWindow
@@ -45,23 +66,34 @@ private:
     Ui::MainWindow *ui;
     QProcess *pythonProcess;
     QString currentTempFile;
-    QString currentFileName;  // Имя текущего файла для отображения
+    QString currentFileName;
 
     // Данные от Python
-    QMap<int, QString> sentenceTexts;  // номер предложения -> текст
-    QMap<int, QList<WordInfo>> wordsBySentence;  // номер предложения -> список слов
+    QMap<int, QString> sentenceTexts;
+    QMap<int, QList<WordInfo>> wordsBySentence;
+
+    // Статистика
+    Statistics stats;
+
+    // Для отображения статистики
+    QMap<QString, QLabel*> statsCountLabels;
+    QMap<QString, QTextBrowser*> statsTextBrowsers;
 
     void setupPythonProcess();
     void updateAllCheckboxState();
     QString createTempFileWithText(const QString& text);
-    bool loadFile(const QString& filePath);  // Загрузка файла
+    bool loadFile(const QString& filePath);
     void processPythonOutput(const QString& output);
     bool shouldShowWord(const WordInfo& word);
     void updateDisplay();
-    void runAnalysis(const QString& text);  // Запуск анализа для текста
+    void runAnalysis(const QString& text);
     void generateHtmlReport();
     bool callNatasha(const QString path);
     bool hasAnyLetter(const QString& text);
+    bool hasOnlyNumbers(const QString& text);
+    void calculateStatistics();
+    void updateStatisticsDisplay();
+    void setupStatisticsWidgets();
 };
 
 #endif // MAINWINDOW_H

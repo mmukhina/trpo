@@ -1,0 +1,695 @@
+#include "mainwindow.h"
+#include "ui_mainwindow.h"
+#include <QMessageBox>
+#include <QCoreApplication>
+#include <QDebug>
+#include <QFileInfo>
+#include <QStatusBar>
+#include <QFile>
+#include <QTextStream>
+#include <QDir>
+#include <QDateTime>
+#include <QTreeWidget>
+#include <QHeaderView>
+#include <QBrush>
+#include <QFont>
+#include <QMap>
+#include <QFileDialog>
+#include <QProgressDialog>
+#include <QJsonDocument>
+#include <QJsonObject>
+#include <QJsonArray>
+
+#include <QDesktopServices>
+#include <QUrl>
+
+void MainWindow::generateHtmlReport()
+{
+    if (sentenceTexts.isEmpty()) {
+        QMessageBox::warning(this, "Внимание", "Нет данных для сохранения.");
+        return;
+    }
+
+    QString fileName = QFileDialog::getSaveFileName(this, "Сохранить отчет",
+                                                    QDir::currentPath() + "/syntax_report.html", "HTML файлы (*.html)");
+
+    if (fileName.isEmpty()) return;
+
+    QFile file(fileName);
+    if (!file.open(QIODevice::WriteOnly | QIODevice::Text)) return;
+
+    QTextStream out(&file);
+    out.setEncoding(QStringConverter::Utf8);
+
+    out << "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
+    out << "<title>Синтаксический разбор текста</title>";
+    out << "<style>"
+        // Общие стили
+        << "body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; background: #f0f2f5; color: #333; }"
+        << ".container { max-width: 1000px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }"
+        << "h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }"
+
+        // Стили Легенды
+        << ".legend { background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; margin-bottom: 40px; }"
+        << ".legend h3 { margin-top: 0; font-size: 18px; color: #495057; }"
+        << ".legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }"
+        << ".legend-item { display: flex; align-items: center; gap: 10px; font-size: 14px; }"
+
+        // Стили слов и частей речи
+        << ".sentence-block { margin-bottom: 40px; line-height: 3; }"
+        << ".word-container { display: inline-flex; flex-direction: column; align-items: center; margin: 0 5px; vertical-align: bottom; }"
+        << ".pos-label { font-size: 11px; color: #2c3e50; text-transform: none; line-height: 1.2; margin-bottom: 5px; font-weight: 600; background: #e8f4fd; padding: 2px 8px; border-radius: 4px; }"
+        << ".word-text { font-size: 18px; white-space: nowrap; padding: 0 2px; }"
+
+        // Школьные подчеркивания
+        << ".pod { border-bottom: 2px solid black; } "                // Подлежащее: 1 черта
+        << ".skaz { border-bottom: 4px double black; } "             // Сказуемое: 2 черты
+        << ".opred { text-decoration: underline wavy #27ae60; } "     // Определение: волнистая
+        << ".dop { border-bottom: 2px dashed #2980b9; } "            // Дополнение: пунктир
+        << ".ob { border-bottom: 2px dotted #e67e22; } "             // Обстоятельство: точки
+        << ".none { border-bottom: none; }"
+
+        << "</style></head><body><div class='container'>";
+
+    // 1. ЗАГОЛОВОК И ЛЕГЕНДА
+    out << "<h1>Синтаксический разбор текста</h1>";
+
+    out << "<div class='legend'>"
+        << "<h3>Условные обозначения:</h3>"
+        << "<div class='legend-grid'>"
+        << "<div class='legend-item'><span class='word-text pod'>Слово</span> — Подлежащее</div>"
+        << "<div class='legend-item'><span class='word-text skaz'>Слово</span> — Сказуемое</div>"
+        << "<div class='legend-item'><span class='word-text opred'>Слово</span> — Определение</div>"
+        << "<div class='legend-item'><span class='word-text dop'>Слово</span> — Дополнение</div>"
+        << "<div class='legend-item'><span class='word-text ob'>Слово</span> — Обстоятельство</div>"
+        << "</div></div>";
+
+    // 2. ВЫВОД ПРЕДЛОЖЕНИЙ
+    QList<int> sentNumbers = sentenceTexts.keys();
+    std::sort(sentNumbers.begin(), sentNumbers.end());
+
+    for (int sentNum : sentNumbers) {
+        out << "<div class='sentence-block'>";
+        out << "<div style='color: #999; font-size: 12px; margin-bottom: 10px;'>Предложение " << sentNum << "</div>";
+
+        for (const WordInfo& word : wordsBySentence[sentNum]) {
+
+            // Маппинг типа в CSS класс
+            QString cssClass;
+            if (word.sentence == "Подлежащее") cssClass = "pod";
+            else if (word.sentence == "Сказуемое") cssClass = "skaz";
+            else if (word.sentence == "Определение") cssClass = "opred";
+            else if (word.sentence == "Дополнение") cssClass = "dop";
+            else if (word.sentence == "Обстоятельство") cssClass = "ob";
+            else cssClass = "none";
+
+            // ИЗМЕНЕНО: Над словом выводим русскую часть речи
+            QString displayPos = word.posRussian;
+            if (displayPos.isEmpty() || word.speech == "PUNCT") {
+                displayPos = "";
+            }
+
+            // Экранируем HTML специальные символы
+            QString escapedText = word.text;
+            escapedText.replace("&", "&amp;");
+            escapedText.replace("<", "&lt;");
+            escapedText.replace(">", "&gt;");
+
+            out << "<div class='word-container'>"
+                << "<span class='pos-label'>" << displayPos << "</span>"
+                << "<span class='word-text " << cssClass << "'>" << escapedText << "</span>"
+                << "</div>";
+        }
+        out << "</div><hr style='border: 0; border-top: 1px solid #eee;'>";
+    }
+
+    out << "</div></body></html>";
+    file.close();
+    QDesktopServices::openUrl(QUrl::fromLocalFile(fileName));
+}
+
+MainWindow::MainWindow(QWidget *parent)
+    : QMainWindow(parent)
+    , ui(new Ui::MainWindow)
+    , pythonProcess(nullptr)
+{
+    ui->setupUi(this);
+    setupPythonProcess();
+}
+
+MainWindow::~MainWindow()
+{
+    if (pythonProcess && pythonProcess->state() == QProcess::Running) {
+        pythonProcess->terminate();
+        pythonProcess->waitForFinished(3000);
+    }
+    delete ui;
+}
+
+void MainWindow::setupPythonProcess()
+{
+    pythonProcess = new QProcess(this);
+    pythonProcess->setProcessChannelMode(QProcess::MergedChannels);
+
+    connect(pythonProcess, &QProcess::readyReadStandardOutput,
+            this, &MainWindow::handlePythonOutput);
+    connect(pythonProcess, &QProcess::readyReadStandardError,
+            this, &MainWindow::handlePythonError);
+    connect(pythonProcess, QOverload<int, QProcess::ExitStatus>::of(&QProcess::finished),
+            this, &MainWindow::handlePythonFinished);
+}
+
+void MainWindow::on_c_all_stateChanged(int arg1)
+{
+    // Блокируем сигналы
+    ui->c_pod->blockSignals(true);
+    ui->c_skaz->blockSignals(true);
+    ui->c_opred->blockSignals(true);
+    ui->c_dop->blockSignals(true);
+    ui->c_ob->blockSignals(true);
+    ui->c_none->blockSignals(true);
+
+    // Устанавливаем состояние всех чекбоксов
+    if (arg1 == Qt::Checked) {
+        ui->c_pod->setChecked(true);
+        ui->c_skaz->setChecked(true);
+        ui->c_opred->setChecked(true);
+        ui->c_dop->setChecked(true);
+        ui->c_ob->setChecked(true);
+        ui->c_none->setChecked(true);
+    } else {
+        ui->c_pod->setChecked(false);
+        ui->c_skaz->setChecked(false);
+        ui->c_opred->setChecked(false);
+        ui->c_dop->setChecked(false);
+        ui->c_ob->setChecked(false);
+        ui->c_none->setChecked(false);
+    }
+
+    // Разблокируем сигналы
+    ui->c_pod->blockSignals(false);
+    ui->c_skaz->blockSignals(false);
+    ui->c_opred->blockSignals(false);
+    ui->c_dop->blockSignals(false);
+    ui->c_ob->blockSignals(false);
+    ui->c_none->blockSignals(false);
+
+    // Обновляем отображение, если есть данные
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_pod_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_skaz_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_opred_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_dop_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_ob_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::on_c_none_stateChanged(int)
+{
+    updateAllCheckboxState();
+    if (!sentenceTexts.isEmpty()) {
+        updateDisplay();
+    }
+}
+
+void MainWindow::updateAllCheckboxState()
+{
+    // Блокируем сигнал для c_all
+    ui->c_all->blockSignals(true);
+
+    // Проверяем, все ли чекбоксы выбраны
+    bool allChecked = ui->c_pod->isChecked() &&
+                      ui->c_skaz->isChecked() &&
+                      ui->c_opred->isChecked() &&
+                      ui->c_dop->isChecked() &&
+                      ui->c_ob->isChecked() &&
+                      ui->c_none->isChecked();
+
+    // Проверяем, все ли чекбоксы не выбраны
+    bool allUnchecked = !ui->c_pod->isChecked() &&
+                        !ui->c_skaz->isChecked() &&
+                        !ui->c_opred->isChecked() &&
+                        !ui->c_dop->isChecked() &&
+                        !ui->c_ob->isChecked() &&
+                        !ui->c_none->isChecked();
+
+    // Устанавливаем состояние c_all
+    if (allChecked) {
+        ui->c_all->setCheckState(Qt::Checked);
+    } else if (allUnchecked) {
+        ui->c_all->setCheckState(Qt::Unchecked);
+    } else {
+        ui->c_all->setCheckState(Qt::PartiallyChecked);
+    }
+
+    // Разблокируем сигнал
+    ui->c_all->blockSignals(false);
+}
+
+QString MainWindow::createTempFileWithText(const QString& text)
+{
+    QString tempDir = QCoreApplication::applicationDirPath() + "/temp";
+    QDir dir;
+    if (!dir.exists(tempDir)) {
+        dir.mkpath(tempDir);
+    }
+
+    QString timestamp = QDateTime::currentDateTime().toString("yyyyMMdd_hhmmss_zzz");
+    QString tempFilePath = tempDir + "/input_" + timestamp + ".txt";
+
+    QFile file(tempFilePath);
+    if (file.open(QIODevice::WriteOnly | QIODevice::Text)) {
+        QTextStream out(&file);
+        out.setEncoding(QStringConverter::Utf8);
+        out << text;
+        file.close();
+        return tempFilePath;
+    }
+
+    return QString();
+}
+
+bool MainWindow::loadFile(const QString& filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, "Ошибка", "Не удалось открыть файл: " + filePath);
+        return false;
+    }
+
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QString content = in.readAll();
+    file.close();
+
+    if (content.isEmpty()) {
+        QMessageBox::warning(this, "Предупреждение", "Файл пуст.");
+        return false;
+    }
+
+    // Показываем содержимое в поле ввода
+    ui->lineEdit->setText(content);
+    currentFileName = QFileInfo(filePath).fileName();
+
+    statusBar()->showMessage("Загружен файл: " + currentFileName, 3000);
+
+    return true;
+}
+
+bool MainWindow::callNatasha(const QString path){
+    // Путь к Python скрипту
+    QString scriptPath = QCoreApplication::applicationDirPath() + "/analyzer.py";
+    QFileInfo scriptFile(scriptPath);
+
+    if (!scriptFile.exists()) {
+        QMessageBox::critical(this, "Скрипт не найден",
+                              "Python скрипт не найден по пути:\n" + scriptPath +
+                                  "\n\nУбедитесь, что файл analyzer.py находится в папке с программой.",
+                              QMessageBox::Ok);
+        ui->btn_search->setEnabled(true);
+        ui->btn_search->setText("Поиск");
+        ui->btn_upload->setEnabled(true);
+        if (!path.isEmpty() && QFile::exists(path)) {
+            QFile::remove(path);
+        }
+        return false;
+    }
+
+    // Подготавливаем аргументы
+    QStringList arguments;
+    arguments << scriptPath;
+    arguments << path;
+
+    // Устанавливаем окружение для UTF-8
+    QProcessEnvironment env = QProcessEnvironment::systemEnvironment();
+    env.insert("PYTHONIOENCODING", "utf-8");
+    env.insert("LANG", "en_US.UTF-8");
+    pythonProcess->setProcessEnvironment(env);
+
+    // Очищаем старые данные
+    sentenceTexts.clear();
+    wordsBySentence.clear();
+    ui->treeWidget->clear();
+
+    // Показываем сообщение в статусбаре
+    statusBar()->showMessage("Выполняется синтаксический анализ...");
+
+    pythonProcess->start("python", arguments);
+
+    // Проверяем, запустился ли процесс
+    if (!pythonProcess->waitForStarted(3000)) {
+        QMessageBox::critical(this, "Ошибка запуска",
+                              "Не удалось запустить Python скрипт.\n"
+                              "Убедитесь, что Python установлен и доступен в командной строке.\n\n"
+                              "Ошибка: " + pythonProcess->errorString(),
+                              QMessageBox::Ok);
+
+        ui->btn_search->setEnabled(true);
+        ui->btn_search->setText("Поиск");
+        ui->btn_upload->setEnabled(true);
+        statusBar()->clearMessage();
+        if (!path.isEmpty() && QFile::exists(path)) {
+            QFile::remove(path);
+        }
+        return false;
+    }
+    return true;
+}
+
+bool MainWindow::hasAnyLetter(const QString& text)
+{
+    for (QChar ch : text) {
+        if (ch.isLetter()) {
+            return true;
+        }
+    }
+    return false;
+}
+
+void MainWindow::runAnalysis(const QString& text)
+{
+    // Проверяем, выбран ли хотя бы один чекбокс
+    bool anyCheckboxSelected = ui->c_pod->isChecked() ||
+                               ui->c_skaz->isChecked() ||
+                               ui->c_opred->isChecked() ||
+                               ui->c_dop->isChecked() ||
+                               ui->c_ob->isChecked() ||
+                               ui->c_none->isChecked();
+
+    /*
+    if (!anyCheckboxSelected) {
+        QMessageBox::warning(this, "Нет выбора",
+                             "Пожалуйста, выберите хотя бы один тип слов для отображения.",
+                             QMessageBox::Ok);
+        return;
+    }
+*/
+
+    // Проверяем, есть ли в тексте буквы
+    if (!hasAnyLetter(text)) {
+        QMessageBox::warning(this, "Нет букв",
+                             "Текст не содержит ни одной буквы.\n"
+                             "Пожалуйста, введите текст с буквами для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    // Проверяем, не запущен ли уже процесс
+    if (pythonProcess && pythonProcess->state() == QProcess::Running) {
+        QMessageBox::warning(this, "Процесс занят",
+                             "Анализ уже выполняется. Пожалуйста, подождите.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    // Блокируем кнопки
+    ui->btn_search->setEnabled(false);
+    ui->btn_search->setText("Поиск...");
+    ui->btn_upload->setEnabled(false);
+
+    // Создаем временный файл
+    QString tempFilePath = createTempFileWithText(text);
+
+    if (tempFilePath.isEmpty()) {
+        QMessageBox::critical(this, "Ошибка файла",
+                              "Не удалось создать временный файл для анализа.",
+                              QMessageBox::Ok);
+        ui->btn_search->setEnabled(true);
+        ui->btn_search->setText("Поиск");
+        ui->btn_upload->setEnabled(true);
+        return;
+    }
+
+    if (!callNatasha(tempFilePath)) {
+        // Если не удалось запустить анализ, разблокируем кнопки
+        ui->btn_search->setEnabled(true);
+        ui->btn_search->setText("Поиск");
+        ui->btn_upload->setEnabled(true);
+        if (!tempFilePath.isEmpty() && QFile::exists(tempFilePath)) {
+            QFile::remove(tempFilePath);
+        }
+        return;
+    }
+
+    // Сохраняем путь к временному файлу для последующего удаления
+    currentTempFile = tempFilePath;
+}
+
+void MainWindow::on_btn_search_clicked()
+{
+    // Получаем текст для поиска
+    QString searchText = ui->lineEdit->text();
+
+    if (searchText.isEmpty()) {
+        QMessageBox::warning(this, "Пустой поиск",
+                             "Пожалуйста, введите текст для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    runAnalysis(searchText);
+}
+
+void MainWindow::on_btn_upload_clicked()
+{
+    // Открываем диалог выбора файла
+    QString filePath = QFileDialog::getOpenFileName(this,
+                                                    "Выберите текстовый файл",
+                                                    QDir::homePath(),
+                                                    "Текстовые файлы (*.txt)");
+
+    if (filePath.isEmpty()) {
+        return; // Пользователь отменил выбор
+    }
+
+    // Загружаем файл
+    if (loadFile(filePath)) {
+        // Спрашиваем, хочет ли пользователь выполнить анализ сразу
+        QMessageBox::StandardButton reply = QMessageBox::question(this,
+                                                                  "Запустить анализ?",
+                                                                  "Файл загружен. Запустить синтаксический анализ сейчас?",
+                                                                  QMessageBox::Yes | QMessageBox::No);
+
+        if (reply == QMessageBox::Yes) {
+            runAnalysis(ui->lineEdit->text());
+        }
+    }
+}
+
+void MainWindow::handlePythonOutput()
+{
+    if (pythonProcess) {
+        QByteArray outputData = pythonProcess->readAllStandardOutput();
+        QString output = QString::fromUtf8(outputData);
+        processPythonOutput(output);
+    }
+}
+
+void MainWindow::handlePythonError()
+{
+    if (pythonProcess) {
+        QByteArray errorData = pythonProcess->readAllStandardError();
+        QString error = QString::fromUtf8(errorData);
+
+        if (!error.isEmpty() && !error.contains("chcp")) {
+            QMessageBox::warning(this, "Ошибка Python скрипта",
+                                 "Ошибка от Python скрипта:\n" + error,
+                                 QMessageBox::Ok);
+        }
+    }
+}
+
+void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitStatus)
+{
+    // Разблокируем кнопки
+    ui->btn_search->setEnabled(true);
+    ui->btn_search->setText("Поиск");
+    ui->btn_upload->setEnabled(true);
+    statusBar()->clearMessage();
+
+    // Удаляем временный файл
+    if (!currentTempFile.isEmpty() && QFile::exists(currentTempFile)) {
+        QFile::remove(currentTempFile);
+        currentTempFile.clear();
+    }
+
+    if (exitStatus == QProcess::CrashExit) {
+        QMessageBox::critical(this, "Процесс аварийно завершен",
+                              "Python скрипт аварийно завершился.",
+                              QMessageBox::Ok);
+    } else if (exitCode != 0) {
+        QMessageBox::warning(this, "Ошибка скрипта",
+                             QString("Python скрипт завершился с кодом ошибки: %1\n\n"
+                                     "Проверьте, что установлены все необходимые библиотеки:\n"
+                                     "pip install natasha").arg(exitCode),
+                             QMessageBox::Ok);
+    } else {
+        statusBar()->showMessage("Синтаксический анализ успешно завершен!", 3000);
+        // Обновляем отображение с учетом фильтров
+        if (!sentenceTexts.isEmpty()) {
+            updateDisplay();
+        } else {
+            QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
+            item->setText(0, "Анализ завершен, но данные не получены");
+        }
+    }
+}
+
+bool MainWindow::shouldShowWord(const WordInfo& word)
+{
+    QString type = word.sentence;
+
+    // Проверяем конкретные типы
+    if (type == "Подлежащее") return ui->c_pod->isChecked();
+    if (type == "Сказуемое") return ui->c_skaz->isChecked();
+    if (type == "Определение") return ui->c_opred->isChecked();
+    if (type == "Дополнение") return ui->c_dop->isChecked();
+    if (type == "Обстоятельство") return ui->c_ob->isChecked();
+    if (type == "Однородный член") return ui->c_none->isChecked();
+    // Для всех остальных типов (PUNCT, неизвестные и т.д.)
+    return ui->c_none->isChecked();
+}
+
+void MainWindow::updateDisplay()
+{
+    ui->treeWidget->clear();
+
+    if (sentenceTexts.isEmpty() || wordsBySentence.isEmpty()) {
+        QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
+        item->setText(0, "Нет данных для отображения");
+        return;
+    }
+
+    QFont font("Arial", 10);
+
+    // Для каждого предложения
+    QList<int> sentNumbers = sentenceTexts.keys();
+    std::sort(sentNumbers.begin(), sentNumbers.end());
+
+    for (int sentNum : sentNumbers) {
+        QString sentenceText = sentenceTexts[sentNum];
+
+        QTreeWidgetItem* sentItem = new QTreeWidgetItem(ui->treeWidget);
+        sentItem->setText(0, QString("Предложение %1: %2").arg(sentNum).arg(sentenceText));
+        sentItem->setExpanded(false);
+
+        // Добавляем слова, которые проходят фильтр
+        if (wordsBySentence.contains(sentNum)) {
+            const QList<WordInfo>& words = wordsBySentence[sentNum];
+            bool hasWords = false;
+
+            for (const WordInfo& word : words) {
+                if (shouldShowWord(word)) {
+                    hasWords = true;
+
+                    // Формируем отображаемый текст
+                    QString displayText = QString("%1 — %2 (%3)")
+                                              .arg(word.text)
+                                              .arg(word.sentence)
+                                              .arg(word.posRussian);  // Русская часть речи вместо NOUN/VERB
+
+                    QTreeWidgetItem* wordItem = new QTreeWidgetItem(sentItem);
+                    wordItem->setText(0, displayText);
+                }
+            }
+
+            // Если нет слов после фильтрации, показываем сообщение
+            if (!hasWords) {
+                QTreeWidgetItem* noWordsItem = new QTreeWidgetItem(sentItem);
+                noWordsItem->setText(0, "Нет слов, соответствующих выбранным фильтрам");
+            }
+        }
+    }
+
+    ui->treeWidget->collapseAll();
+}
+
+void MainWindow::processPythonOutput(const QString& output)
+{
+    // Разделяем строки и очищаем от символов \r
+    QStringList lines = output.split("\n", Qt::SkipEmptyParts);
+
+    for (QString& line : lines) {
+        line = line.trimmed();
+    }
+
+    if (lines.isEmpty()) {
+        return;
+    }
+
+    QString formattedFilePath;
+
+    // Обрабатываем все строки
+    for (const QString& line : lines) {
+        if (line.startsWith("FORMATTED_FILE:")) {
+            formattedFilePath = line.mid(15);
+            continue;
+        }
+
+        QStringList parts = line.split("|");
+
+        if (parts.isEmpty()) continue;
+
+        if (parts[0] == "SENT" && parts.size() >= 3) {
+            // Это предложение
+            int sentNum = parts[1].toInt();
+            QString sentenceText = parts[2];
+            sentenceTexts[sentNum] = sentenceText;
+        }
+        else if (parts.size() >= 8) {  // Теперь 8 полей (было >= 7)
+            WordInfo word;
+            word.text = parts[0].trimmed();
+            word.speech = parts[1].trimmed();
+            word.sentence = parts[6].trimmed();  // Русский тег (Подлежащее и т.д.)
+            word.sentenceNum = parts[4].toInt();
+            word.posRussian = parts[7].trimmed();  // Новое поле: часть речи на русском
+            wordsBySentence[word.sentenceNum].append(word);
+
+        }
+    }
+}
+
+void MainWindow::on_btn_download_clicked() {
+    if (sentenceTexts.isEmpty()) {
+        QMessageBox::warning(this, "Внимание", "Сначала проведите анализ текста.");
+        return;
+    }
+    generateHtmlReport();
+}
+
