@@ -93,7 +93,6 @@ private:
     bool hasOnlyNumbers(const QString& text);
     void calculateStatistics();
     void updateStatisticsDisplay();
-    void setupStatisticsWidgets();
 };
 
 #endif // MAINWINDOW_H

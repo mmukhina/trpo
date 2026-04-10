@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import os
 import sys
 from natasha import Segmenter, MorphVocab, NewsEmbedding, NewsMorphTagger, NewsSyntaxParser, Doc
@@ -12,49 +13,67 @@ syntax_parser = NewsSyntaxParser(embedding)
 def get_conj_member_info(token, sent):
     """
     Определяет тип и русское описание для однородного члена предложения (relation == 'conj').
-    Рекурсивно поднимается по дереву зависимостей до главного слова.
+    Итеративно поднимается по дереву зависимостей до главного слова (без рекурсии).
     Возвращает кортеж: (тип_фильтра, русское_описание)
     """
     if not hasattr(token, 'head_id') or token.head_id is None:
         return "none", "Другое"
     
-    # Ищем главное слово
-    head_token = None
-    for t in sent.tokens:
-        if t.id == token.head_id:
-            head_token = t
+    # Итеративный поиск главного слова
+    current_token = token
+    max_iterations = 1000  # Защита от бесконечного цикла
+    iteration = 0
+    visited = set()
+    
+    while current_token and iteration < max_iterations:
+        iteration += 1
+        
+        # Предотвращаем зацикливание
+        if hasattr(current_token, 'id') and current_token.id in visited:
+            break
+        if hasattr(current_token, 'id'):
+            visited.add(current_token.id)
+        
+        # Находим головное слово
+        head_token = None
+        for t in sent.tokens:
+            if hasattr(t, 'id') and hasattr(current_token, 'head_id') and t.id == current_token.head_id:
+                head_token = t
+                break
+        
+        if not head_token:
             break
             
-    if not head_token:
+        rel = head_token.rel if hasattr(head_token, 'rel') else None
+        
+        # Прямые соответствия
+        mapping = {
+            'nsubj': ("pod", "Подлежащее"),
+            'root': ("skaz", "Сказуемое"),
+            'advcl': ("skaz", "Сказуемое"),
+            'obj': ("dop", "Дополнение"),
+            'iobj': ("dop", "Дополнение"),
+            'obl': ("dop", "Дополнение"),
+            'xcomp': ("dop", "Дополнение"),
+            'ccomp': ("dop", "Дополнение"),
+            'amod': ("opred", "Определение"),
+            'det': ("opred", "Определение"),
+            'nmod': ("opred", "Определение"),
+            'acl': ("opred", "Определение"),
+            'advmod': ("ob", "Обстоятельство"),
+            'parataxis': ("ob", "Обстоятельство"),
+        }
+        
+        if rel in mapping:
+            return mapping[rel]
+        
+        # Если главное слово тоже однородный член, продолжаем итерацию
+        if rel == 'conj':
+            current_token = head_token
+            continue
+            
         return "none", "Другое"
     
-    rel = head_token.rel
-    
-    # Прямые соответствия
-    mapping = {
-        'nsubj': ("pod", "Подлежащее"),
-        'root': ("skaz", "Сказуемое"),
-        'advcl': ("skaz", "Сказуемое"),
-        'obj': ("dop", "Дополнение"),
-        'iobj': ("dop", "Дополнение"),
-        'obl': ("dop", "Дополнение"),
-        'xcomp': ("dop", "Дополнение"),
-        'ccomp': ("dop", "Дополнение"),
-        'amod': ("opred", "Определение"),
-        'det': ("opred", "Определение"),
-        'nmod': ("opred", "Определение"),
-        'acl': ("opred", "Определение"),
-        'advmod': ("ob", "Обстоятельство"),
-        'parataxis': ("ob", "Обстоятельство"),
-    }
-    
-    if rel in mapping:
-        return mapping[rel]
-    
-    # Если главное слово тоже однородный член (цепочка: А, Б и В), идем дальше
-    if rel == 'conj':
-        return get_conj_member_info(head_token, sent)
-        
     return "none", "Другое"
 
 def get_relation_description(relation, token=None, sent=None):

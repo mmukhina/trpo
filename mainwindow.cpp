@@ -229,119 +229,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->setupUi(this);
     setupPythonProcess();
 
-    // Создаем текстовые поля для статистики программно
-    setupStatisticsWidgets();
-
-    this->setStyleSheet(R"(
-        QPushButton {
-            border-radius: 5px;
-            padding: 6px 12px;
-        }
-        QTextEdit {
-            border-radius: 5px;
-            padding: 5px 8px;
-        }
-    )");
-
-    ui->btn_download->setStyleSheet(R"(
-        QPushButton:enabled {
-            background-color: #27ae60;
-            color: white;
-            font-weight: bold;
-        }
-        QPushButton:disabled {
-            background-color: #bdc3c7;
-            color: #7f8c8d;
-        }
-    )");
-
     ui->btn_download->setEnabled(false);
-}
-
-void MainWindow::setupStatisticsWidgets()
-{
-    // Находим вкладку статистики
-    QWidget* statsTab = ui->tabWidget->widget(1);
-    QVBoxLayout* statsLayout = qobject_cast<QVBoxLayout*>(statsTab->layout());
-    if (!statsLayout) return;
-
-    // Очищаем существующие виджеты
-    QLayoutItem* item;
-    while ((item = statsLayout->takeAt(0)) != nullptr) {
-        delete item->widget();
-        delete item;
-    }
-
-    // Создаем скролл-область
-    QScrollArea* scrollArea = new QScrollArea(statsTab);
-    scrollArea->setWidgetResizable(true);
-    scrollArea->setStyleSheet("QScrollArea { border: none; background-color: white; }");
-
-    QWidget* container = new QWidget();
-    QVBoxLayout* containerLayout = new QVBoxLayout(container);
-    containerLayout->setSpacing(15);
-
-    // Создаем сетку для групп
-    QGridLayout* gridLayout = new QGridLayout();
-    gridLayout->setSpacing(12);
-
-    // Создаем группы и текстовые поля
-    QStringList titles = {"Подлежащее", "Сказуемое", "Определение", "Дополнение", "Обстоятельство", "Другое"};
-    QStringList keys = {"pod", "skaz", "opred", "dop", "ob", "drugoe"};
-
-    for (int i = 0; i < titles.size(); i++) {
-        QGroupBox* groupBox = new QGroupBox(titles[i]);
-        groupBox->setStyleSheet(R"(
-            QGroupBox {
-                background-color: #f8fafc;
-                border: 1px solid #d0d0d0;
-                border-radius: 8px;
-                margin-top: 8px;
-                padding-top: 8px;
-            }
-            QGroupBox::title {
-                subcontrol-origin: margin;
-                left: 12px;
-                padding: 0 6px;
-                color: #2c3e50;
-                font-weight: 500;
-                font-size: 12px;
-            }
-        )");
-
-        QVBoxLayout* groupLayout = new QVBoxLayout(groupBox);
-
-        QLabel* countLabel = new QLabel("0");
-        countLabel->setFont(QFont("Arial", 28, QFont::Bold));
-        countLabel->setAlignment(Qt::AlignCenter);
-        countLabel->setStyleSheet("color: #3498db;");
-        groupLayout->addWidget(countLabel);
-
-        QTextBrowser* textBrowser = new QTextBrowser();
-        textBrowser->setMaximumHeight(180);
-        textBrowser->setStyleSheet(R"(
-            QTextBrowser {
-                border: 1px solid #e0e0e0;
-                border-radius: 6px;
-                background-color: white;
-                font-size: 12px;
-                padding: 8px;
-            }
-        )");
-        groupLayout->addWidget(textBrowser);
-
-        // Сохраняем указатели для доступа
-        statsCountLabels[keys[i]] = countLabel;
-        statsTextBrowsers[keys[i]] = textBrowser;
-
-        int row = i / 2;
-        int col = i % 2;
-        gridLayout->addWidget(groupBox, row, col);
-    }
-
-    containerLayout->addLayout(gridLayout);
-    scrollArea->setWidget(container);
-    statsLayout->addWidget(scrollArea);
 }
 
 MainWindow::~MainWindow()
@@ -754,20 +642,20 @@ void MainWindow::calculateStatistics()
 void MainWindow::updateStatisticsDisplay()
 {
     // Update count labels
-    statsCountLabels["pod"]->setText(QString::number(stats.podlezhaschee));
-    statsCountLabels["skaz"]->setText(QString::number(stats.skazuemoe));
-    statsCountLabels["opred"]->setText(QString::number(stats.opredelenie));
-    statsCountLabels["dop"]->setText(QString::number(stats.dopolnenie));
-    statsCountLabels["ob"]->setText(QString::number(stats.obstoyatelstvo));
-    statsCountLabels["drugoe"]->setText(QString::number(stats.drugoe));
+    ui->label_pod_count->setText(QString::number(stats.podlezhaschee));
+    ui->label_skaz_count->setText(QString::number(stats.skazuemoe));
+    ui->label_opred_count->setText(QString::number(stats.opredelenie));
+    ui->label_dop_count->setText(QString::number(stats.dopolnenie));
+    ui->label_ob_count->setText(QString::number(stats.obstoyatelstvo));
+    ui->label_drugoe_count->setText(QString::number(stats.drugoe));
 
     // Clear all text browsers
-    statsTextBrowsers["pod"]->clear();
-    statsTextBrowsers["skaz"]->clear();
-    statsTextBrowsers["opred"]->clear();
-    statsTextBrowsers["dop"]->clear();
-    statsTextBrowsers["ob"]->clear();
-    statsTextBrowsers["drugoe"]->clear();
+    ui->text_pod->clear();
+    ui->text_skaz->clear();
+    ui->text_opred->clear();
+    ui->text_dop->clear();
+    ui->text_ob->clear();
+    ui->text_drugoe->clear();
 
     // Fill Подлежащее
     QString podText;
@@ -775,7 +663,7 @@ void MainWindow::updateStatisticsDisplay()
         podText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (podText.isEmpty()) podText = "Нет данных";
-    statsTextBrowsers["pod"]->setPlainText(podText);
+    ui->text_pod->setPlainText(podText);
 
     // Fill Сказуемое
     QString skazText;
@@ -783,7 +671,7 @@ void MainWindow::updateStatisticsDisplay()
         skazText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (skazText.isEmpty()) skazText = "Нет данных";
-    statsTextBrowsers["skaz"]->setPlainText(skazText);
+    ui->text_skaz->setPlainText(skazText);
 
     // Fill Определение
     QString opredText;
@@ -791,7 +679,7 @@ void MainWindow::updateStatisticsDisplay()
         opredText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (opredText.isEmpty()) opredText = "Нет данных";
-    statsTextBrowsers["opred"]->setPlainText(opredText);
+    ui->text_opred->setPlainText(opredText);
 
     // Fill Дополнение
     QString dopText;
@@ -799,7 +687,7 @@ void MainWindow::updateStatisticsDisplay()
         dopText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (dopText.isEmpty()) dopText = "Нет данных";
-    statsTextBrowsers["dop"]->setPlainText(dopText);
+    ui->text_dop->setPlainText(dopText);
 
     // Fill Обстоятельство
     QString obText;
@@ -807,7 +695,7 @@ void MainWindow::updateStatisticsDisplay()
         obText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (obText.isEmpty()) obText = "Нет данных";
-    statsTextBrowsers["ob"]->setPlainText(obText);
+    ui->text_ob->setPlainText(obText);
 
     // Fill Другое
     QString drugoeText;
@@ -815,7 +703,7 @@ void MainWindow::updateStatisticsDisplay()
         drugoeText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
     }
     if (drugoeText.isEmpty()) drugoeText = "Нет данных";
-    statsTextBrowsers["drugoe"]->setPlainText(drugoeText);
+    ui->text_drugoe->setPlainText(drugoeText);
 
     QString statsText = QString("Статистика: Подлежащих: %1 | Сказуемых: %2 | Определений: %3 | Дополнений: %4 | Обстоятельств: %5 | Прочих: %6")
                             .arg(stats.podlezhaschee)
@@ -922,6 +810,7 @@ void MainWindow::updateDisplay()
 
 void MainWindow::processPythonOutput(const QString& output)
 {
+    qDebug() << output;
     QStringList lines = output.split("\n", Qt::SkipEmptyParts);
     for (QString& line : lines) {
         line = line.trimmed();
