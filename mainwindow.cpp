@@ -21,13 +21,6 @@
 #include <QJsonArray>
 #include <QDesktopServices>
 #include <QUrl>
-#include <QTextEdit>
-#include <QTextBrowser>
-#include <QVBoxLayout>
-#include <QGroupBox>
-#include <QLabel>
-#include <QScrollArea>
-#include <QGridLayout>
 
 void MainWindow::generateHtmlReport()
 {
@@ -67,10 +60,18 @@ void MainWindow::generateHtmlReport()
         << ".stat-card { background: #3498db; color: white; padding: 20px; border-radius: 12px; text-align: center; }"
         << ".stat-card h3 { margin: 0 0 10px 0; font-size: 16px; }"
         << ".stat-number { font-size: 36px; font-weight: bold; margin: 10px 0; }"
-        << ".stat-list { background: #f8f9fa; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #dee2e6; }"
-        << ".stat-list h4 { margin: 0 0 10px 0; color: #2c3e50; }"
-        << ".stat-list ul { margin: 0; padding-left: 20px; }"
-        << ".stat-list li { margin: 5px 0; }"
+
+        << ".stat-section { margin-bottom: 15px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }"
+        << ".stat-header { background: #f8f9fa; padding: 12px 20px; cursor: pointer; user-select: none; transition: background 0.2s; }"
+        << ".stat-header:hover { background: #e9ecef; }"
+        << ".toggle-icon { display: inline-block; transition: transform 0.2s; font-size: 14px; margin-right: 8px; }"
+        << ".stat-header .item-count { font-size: 12px; color: #6c757d; font-weight: normal; margin-left: 8px; }"
+        << ".stat-content { padding: 15px 20px; background: white; border-top: 1px solid #dee2e6; max-height: 400px; overflow-y: auto; }"
+        << ".stat-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }"
+        << ".stat-list-item { background: #f8f9fa; padding: 10px 15px; border-radius: 6px; border-left: 3px solid #3498db; }"
+        << ".sentence-num { font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px; }"
+        << ".word-list { color: #495057; font-size: 13px; line-height: 1.4; }"
+        << ".no-data { color: #6c757d; font-style: italic; padding: 20px; text-align: center; }"
 
         << ".sentence-block { margin-bottom: 40px; line-height: 3; }"
         << ".word-container { display: inline-flex; flex-direction: column; align-items: center; margin: 0 5px; vertical-align: bottom; }"
@@ -83,6 +84,11 @@ void MainWindow::generateHtmlReport()
         << ".dop { border-bottom: 2px dashed #3498db; } "
         << ".ob { border-bottom: 2px dotted #3498db; } "
         << ".none { border-bottom: none; }"
+
+        << "::-webkit-scrollbar { width: 8px; height: 8px; }"
+        << "::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }"
+        << "::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }"
+        << "::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }"
         << "</style>"
         << "<script>"
         << "function openTab(evt, tabName) {"
@@ -98,6 +104,24 @@ void MainWindow::generateHtmlReport()
         << "  document.getElementById(tabName).style.display = 'block';"
         << "  evt.currentTarget.className += ' active';"
         << "}"
+        << "function toggleSection(sectionId) {"
+        << "  var content = document.getElementById(sectionId);"
+        << "  var icon = document.getElementById(sectionId + '-icon');"
+        << "  if (content.style.display === 'none' || content.style.display === '') {"
+        << "    content.style.display = 'block';"
+        << "    icon.innerHTML = '▼';"
+        << "    icon.style.transform = 'rotate(0deg)';"
+        << "  } else {"
+        << "    content.style.display = 'none';"
+        << "    icon.innerHTML = '▶';"
+        << "  }"
+        << "}"
+        << "document.addEventListener('DOMContentLoaded', function() {"
+        << "  var sections = document.querySelectorAll('.stat-content');"
+        << "  for (var i = 0; i < sections.length; i++) {"
+        << "    sections[i].style.display = 'none';"
+        << "  }"
+        << "});"
         << "</script>"
         << "</head><body><div class='container'>";
 
@@ -154,8 +178,10 @@ void MainWindow::generateHtmlReport()
 
     out << "</div>";
 
+    // Statistics tab with expandable sections
     out << "<div id='Statistics' class='tab-content'>";
 
+    // Summary cards
     out << "<div class='stats-grid'>"
         << "<div class='stat-card'><h3>Подлежащее</h3><div class='stat-number'>" << stats.podlezhaschee << "</div></div>"
         << "<div class='stat-card'><h3>Сказуемое</h3><div class='stat-number'>" << stats.skazuemoe << "</div></div>"
@@ -165,55 +191,43 @@ void MainWindow::generateHtmlReport()
         << "<div class='stat-card'><h3>Другое</h3><div class='stat-number'>" << stats.drugoe << "</div></div>"
         << "</div>";
 
-    out << "<h3>Детальная статистика по предложениям</h3>";
+    out << "<h3 style='margin-top: 30px; margin-bottom: 15px;'>Детальная статистика по предложениям</h3>";
 
-    if (!stats.podlezhascheeSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Подлежащие:</h4><ul>";
-        for (auto it = stats.podlezhascheeSentences.begin(); it != stats.podlezhascheeSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
+    // Helper lambda to create expandable sections
+    auto createExpandableSection = [&out](const QString& title, const QMap<int, QList<QString>>& data, const QString& sectionId) {
+        int totalItems = 0;
+        for (auto it = data.begin(); it != data.end(); ++it) {
+            totalItems += it.value().size();
         }
-        out << "</ul></div>";
-    }
 
-    if (!stats.skazuemoeSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Сказуемые:</h4><ul>";
-        for (auto it = stats.skazuemoeSentences.begin(); it != stats.skazuemoeSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
-        }
-        out << "</ul></div>";
-    }
+        out << "<div class='stat-section'>"
+            << "<div class='stat-header' onclick=\"toggleSection('" << sectionId << "')\">"
+            << "<span class='toggle-icon' id='" << sectionId << "-icon'>▶</span> "
+            << "<strong>" << title << "</strong> <span class='item-count'>(" << totalItems << " элементов)</span>"
+            << "</div>"
+            << "<div id='" << sectionId << "' class='stat-content' style='display: none;'>";
 
-    if (!stats.opredelenieSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Определения:</h4><ul>";
-        for (auto it = stats.opredelenieSentences.begin(); it != stats.opredelenieSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
+        if (data.isEmpty()) {
+            out << "<p class='no-data'>Нет данных</p>";
+        } else {
+            out << "<div class='stat-list-grid'>";
+            for (auto it = data.begin(); it != data.end(); ++it) {
+                out << "<div class='stat-list-item'>"
+                    << "<div class='sentence-num'>Предложение " << it.key() << "</div>"
+                    << "<div class='word-list'>" << it.value().join(", ") << "</div>"
+                    << "</div>";
+            }
+            out << "</div>";
         }
-        out << "</ul></div>";
-    }
+        out << "</div></div>";
+    };
 
-    if (!stats.dopolnenieSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Дополнения:</h4><ul>";
-        for (auto it = stats.dopolnenieSentences.begin(); it != stats.dopolnenieSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
-        }
-        out << "</ul></div>";
-    }
-
-    if (!stats.obstoyatelstvoSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Обстоятельства:</h4><ul>";
-        for (auto it = stats.obstoyatelstvoSentences.begin(); it != stats.obstoyatelstvoSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
-        }
-        out << "</ul></div>";
-    }
-
-    if (!stats.drugoeSentences.isEmpty()) {
-        out << "<div class='stat-list'><h4>Другое:</h4><ul>";
-        for (auto it = stats.drugoeSentences.begin(); it != stats.drugoeSentences.end(); ++it) {
-            out << "<li>Предложение " << it.key() << ": " << it.value().join(", ") << "</li>";
-        }
-        out << "</ul></div>";
-    }
+    createExpandableSection("Подлежащие", stats.podlezhascheeSentences, "section-pod");
+    createExpandableSection("Сказуемые", stats.skazuemoeSentences, "section-skaz");
+    createExpandableSection("Определения", stats.opredelenieSentences, "section-opred");
+    createExpandableSection("Дополнения", stats.dopolnenieSentences, "section-dop");
+    createExpandableSection("Обстоятельства", stats.obstoyatelstvoSentences, "section-ob");
+    createExpandableSection("Другое", stats.drugoeSentences, "section-drugoe");
 
     out << "</div>";
     out << "</div></body></html>";
@@ -228,8 +242,14 @@ MainWindow::MainWindow(QWidget *parent)
 {
     ui->setupUi(this);
     setupPythonProcess();
-
     ui->btn_download->setEnabled(false);
+
+    // Hide the tree widget header
+    ui->treeWidget->setHeaderHidden(true);
+
+    // Show placeholder messages on both tabs with consistent styling
+    showPlaceholderInResults();
+    showPlaceholderStatistics();
 }
 
 MainWindow::~MainWindow()
@@ -241,10 +261,67 @@ MainWindow::~MainWindow()
     delete ui;
 }
 
+void MainWindow::showPlaceholderInResults()
+{
+    // Switch to placeholder page
+    ui->stackedResults->setCurrentIndex(0);
+
+    // Ensure the placeholder label has consistent styling
+    ui->placeholderLabel->setStyleSheet(
+        "QLabel#placeholderLabel {"
+        "    color: #6c757d;"
+        "    font-size: 14px;"
+        "    font-style: italic;"
+        "    padding: 40px;"
+        "    text-align: center;"
+        "}"
+        );
+    ui->placeholderLabel->setText("Введите текст для анализа");
+}
+
+void MainWindow::showResultsPage()
+{
+    // Switch to results page with tree widget
+    ui->stackedResults->setCurrentIndex(1);
+}
+
+void MainWindow::showPlaceholderStatistics()
+{
+    // Clear the existing statistics container
+    QLayoutItem* child;
+    while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) delete child->widget();
+        delete child;
+    }
+
+    // Create a simple centered placeholder similar to results tab
+    QWidget* placeholderWidget = new QWidget();
+    QVBoxLayout* placeholderLayout = new QVBoxLayout(placeholderWidget);
+    placeholderLayout->setContentsMargins(0, 0, 0, 0);
+
+    QLabel* placeholderLabel = new QLabel("Введите текст для анализа");
+    placeholderLabel->setObjectName("placeholderLabel");
+    placeholderLabel->setAlignment(Qt::AlignCenter);
+    placeholderLabel->setStyleSheet(
+        "QLabel#placeholderLabel {"
+        "    color: #6c757d;"
+        "    font-size: 14px;"
+        "    font-style: italic;"
+        "    padding: 40px;"
+        "    text-align: center;"
+        "}"
+        );
+
+    placeholderLayout->addWidget(placeholderLabel);
+
+    ui->statisticsContainerLayout->addWidget(placeholderWidget);
+}
+
 void MainWindow::setupPythonProcess()
 {
     pythonProcess = new QProcess(this);
     pythonProcess->setProcessChannelMode(QProcess::MergedChannels);
+
     connect(pythonProcess, &QProcess::readyReadStandardOutput,
             this, &MainWindow::handlePythonOutput);
     connect(pythonProcess, &QProcess::readyReadStandardError,
@@ -290,53 +367,12 @@ void MainWindow::on_c_all_stateChanged(int arg1)
     }
 }
 
-void MainWindow::on_c_pod_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
-
-void MainWindow::on_c_skaz_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
-
-void MainWindow::on_c_opred_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
-
-void MainWindow::on_c_dop_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
-
-void MainWindow::on_c_ob_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
-
-void MainWindow::on_c_none_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-    }
-}
+void MainWindow::on_c_pod_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
+void MainWindow::on_c_skaz_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
+void MainWindow::on_c_opred_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
+void MainWindow::on_c_dop_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
+void MainWindow::on_c_ob_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
+void MainWindow::on_c_none_stateChanged(int) { updateAllCheckboxState(); if (!sentenceTexts.isEmpty()) updateDisplay(); }
 
 void MainWindow::updateAllCheckboxState()
 {
@@ -386,6 +422,7 @@ QString MainWindow::createTempFileWithText(const QString& text)
         file.close();
         return tempFilePath;
     }
+
     return QString();
 }
 
@@ -403,20 +440,13 @@ bool MainWindow::loadFile(const QString& filePath)
     file.close();
 
     if (content.isEmpty()) {
-        QMessageBox::warning(this, "Предупреждение", "Файл пуст. Пожалуйста, выберите файл с текстом.");
-        return false;
-    }
-
-    if (hasOnlyNumbers(content)) {
-        QMessageBox::warning(this, "Предупреждение",
-                             "Файл содержит только цифры и символы.\n"
-                             "Пожалуйста, выберите файл с текстом на русском языке.",
-                             QMessageBox::Ok);
+        QMessageBox::warning(this, "Предупреждение", "Файл пуст.");
         return false;
     }
 
     ui->textEdit->setPlainText(content);
     currentFileName = QFileInfo(filePath).fileName();
+
     statusBar()->showMessage("Загружен файл: " + currentFileName, 3000);
 
     return true;
@@ -425,10 +455,11 @@ bool MainWindow::loadFile(const QString& filePath)
 bool MainWindow::callNatasha(const QString path){
     QString scriptPath = QCoreApplication::applicationDirPath() + "/analyzer.py";
     QFileInfo scriptFile(scriptPath);
+
     if (!scriptFile.exists()) {
         QMessageBox::critical(this, "Скрипт не найден",
                               "Python скрипт не найден по пути:\n" + scriptPath +
-                                  "\nУбедитесь, что файл analyzer.py находится в папке с программой.",
+                                  "\n\nУбедитесь, что файл analyzer.py находится в папке с программой.",
                               QMessageBox::Ok);
         ui->btn_search->setEnabled(true);
         ui->btn_search->setText("Поиск");
@@ -459,9 +490,10 @@ bool MainWindow::callNatasha(const QString path){
     if (!pythonProcess->waitForStarted(3000)) {
         QMessageBox::critical(this, "Ошибка запуска",
                               "Не удалось запустить Python скрипт.\n"
-                              "Убедитесь, что Python установлен и доступен в командной строке.\n"
+                              "Убедитесь, что Python установлен и доступен в командной строке.\n\n"
                               "Ошибка: " + pythonProcess->errorString(),
                               QMessageBox::Ok);
+
         ui->btn_search->setEnabled(true);
         ui->btn_search->setText("Поиск");
         ui->btn_upload->setEnabled(true);
@@ -487,15 +519,9 @@ bool MainWindow::hasAnyLetter(const QString& text)
 bool MainWindow::hasOnlyNumbers(const QString& text)
 {
     for (QChar ch : text) {
-        if (ch.isLetter() || (ch.unicode() >= 0x0400 && ch.unicode() <= 0x04FF)) {
-            return false;
-        }
-        if (ch.isPunct() || ch.isSpace()) {
-            continue;
-        }
-        if (!ch.isDigit()) {
-            return false;
-        }
+        if (ch.isLetter() || (ch.unicode() >= 0x0400 && ch.unicode() <= 0x04FF)) return false;
+        if (ch.isPunct() || ch.isSpace()) continue;
+        if (!ch.isDigit()) return false;
     }
     return true;
 }
@@ -517,12 +543,13 @@ void MainWindow::runAnalysis(const QString& text)
         return;
     }
 
-    ui->btn_download->setEnabled(false);
     ui->btn_search->setEnabled(false);
     ui->btn_search->setText("Поиск...");
     ui->btn_upload->setEnabled(false);
+    ui->btn_download->setEnabled(false);
 
     QString tempFilePath = createTempFileWithText(text);
+
     if (tempFilePath.isEmpty()) {
         QMessageBox::critical(this, "Ошибка файла",
                               "Не удалось создать временный файл для анализа.",
@@ -556,6 +583,7 @@ void MainWindow::on_btn_search_clicked()
                              QMessageBox::Ok);
         return;
     }
+
     runAnalysis(searchText);
 }
 
@@ -565,18 +593,95 @@ void MainWindow::on_btn_upload_clicked()
                                                     "Выберите текстовый файл",
                                                     QDir::homePath(),
                                                     "Текстовые файлы (*.txt)");
+
     if (filePath.isEmpty()) {
         return;
     }
 
-    if (loadFile(filePath)) {
-        QMessageBox::StandardButton reply = QMessageBox::question(this,
-                                                                  "Запустить анализ?",
-                                                                  "Файл загружен. Запустить синтаксический анализ сейчас?",
-                                                                  QMessageBox::Yes | QMessageBox::No);
-        if (reply == QMessageBox::Yes) {
-            runAnalysis(ui->textEdit->toPlainText());
-        }
+    // First, read the file content without loading it into the UI
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly | QIODevice::Text)) {
+        QMessageBox::critical(this, "Ошибка", "Не удалось открыть файл: " + filePath);
+        return;
+    }
+
+    QTextStream in(&file);
+    in.setEncoding(QStringConverter::Utf8);
+    QString content = in.readAll();
+    file.close();
+
+    if (content.isEmpty()) {
+        QMessageBox::warning(this, "Пустой файл",
+                             "Файл пуст. Пожалуйста, выберите файл с текстом для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    // Check if file contains any letters
+    if (!hasAnyLetter(content)) {
+        QMessageBox::warning(this, "Нет букв",
+                             "Файл не содержит ни одной буквы.\n"
+                             "Пожалуйста, выберите файл с текстом, содержащим буквы для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    // Check if file contains only numbers
+    if (hasOnlyNumbers(content)) {
+        QMessageBox::warning(this, "Только цифры",
+                             "Файл содержит только цифры.\n"
+                             "Пожалуйста, выберите файл с текстом, содержащим буквы для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    // All checks passed - now load the text into the UI
+    ui->textEdit->setPlainText(content);
+    currentFileName = QFileInfo(filePath).fileName();
+    statusBar()->showMessage("Загружен файл: " + currentFileName, 3000);
+
+    // Ask user if they want to run analysis
+    QMessageBox msgBox(this);
+    msgBox.setWindowTitle("Запустить анализ?");
+    msgBox.setText("Файл загружен. Запустить синтаксический анализ сейчас?");
+    msgBox.setIcon(QMessageBox::Question);
+
+    // Apply proper stylesheet targeting QMessageBox buttons
+    msgBox.setStyleSheet(
+        "QMessageBox QPushButton {"
+        "    background-color: #ecf0f1;"
+        "    color: #2c3e50;"
+        "    border: 1px solid #bdc3c7;"
+        "    border-radius: 6px;"
+        "    padding: 5px 14px;"
+        "    font-size: 12px;"
+        "    min-width: 80px;"
+        "}"
+        "QMessageBox QPushButton:hover {"
+        "    background-color: #dfe6e9;"
+        "    border: 1px solid #bdc3c7;"
+        "}"
+        "QMessageBox QPushButton:pressed {"
+        "    background-color: #bdc3c7;"
+        "}"
+        "QLabel {"
+        "    color: #2c3e50;"
+        "    font-size: 12px;"
+        "}"
+        );
+
+    QPushButton *yesButton = msgBox.addButton("Да", QMessageBox::YesRole);
+    QPushButton *noButton = msgBox.addButton("Нет", QMessageBox::NoRole);
+    msgBox.setDefaultButton(yesButton);
+
+    // Style the buttons directly
+    yesButton->setCursor(Qt::PointingHandCursor);
+    noButton->setCursor(Qt::PointingHandCursor);
+
+    msgBox.exec();
+
+    if (msgBox.clickedButton() == yesButton) {
+        runAnalysis(ui->textEdit->toPlainText());
     }
 }
 
@@ -594,6 +699,7 @@ void MainWindow::handlePythonError()
     if (pythonProcess) {
         QByteArray errorData = pythonProcess->readAllStandardError();
         QString error = QString::fromUtf8(errorData);
+
         if (!error.isEmpty() && !error.contains("chcp")) {
             QMessageBox::warning(this, "Ошибка Python скрипта",
                                  "Ошибка от Python скрипта:\n" + error,
@@ -605,11 +711,9 @@ void MainWindow::handlePythonError()
 void MainWindow::calculateStatistics()
 {
     stats = Statistics();
-
     for (auto it = wordsBySentence.begin(); it != wordsBySentence.end(); ++it) {
         int sentenceNum = it.key();
         const QList<WordInfo>& words = it.value();
-
         for (const WordInfo& word : words) {
             if (word.sentence == "Подлежащее") {
                 stats.podlezhaschee++;
@@ -641,78 +745,110 @@ void MainWindow::calculateStatistics()
 
 void MainWindow::updateStatisticsDisplay()
 {
-    // Update count labels
-    ui->label_pod_count->setText(QString::number(stats.podlezhaschee));
-    ui->label_skaz_count->setText(QString::number(stats.skazuemoe));
-    ui->label_opred_count->setText(QString::number(stats.opredelenie));
-    ui->label_dop_count->setText(QString::number(stats.dopolnenie));
-    ui->label_ob_count->setText(QString::number(stats.obstoyatelstvo));
-    ui->label_drugoe_count->setText(QString::number(stats.drugoe));
-
-    // Clear all text browsers
-    ui->text_pod->clear();
-    ui->text_skaz->clear();
-    ui->text_opred->clear();
-    ui->text_dop->clear();
-    ui->text_ob->clear();
-    ui->text_drugoe->clear();
-
-    // Fill Подлежащее
-    QString podText;
-    for (auto it = stats.podlezhascheeSentences.begin(); it != stats.podlezhascheeSentences.end(); ++it) {
-        podText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
+    QLayoutItem* child;
+    while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
+        if (child->widget()) delete child->widget();
+        delete child;
     }
-    if (podText.isEmpty()) podText = "Нет данных";
-    ui->text_pod->setPlainText(podText);
 
-    // Fill Сказуемое
-    QString skazText;
-    for (auto it = stats.skazuemoeSentences.begin(); it != stats.skazuemoeSentences.end(); ++it) {
-        skazText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
-    }
-    if (skazText.isEmpty()) skazText = "Нет данных";
-    ui->text_skaz->setPlainText(skazText);
+    QWidget* buttonsWidget = new QWidget();
+    buttonsWidget->setObjectName("statButtonsWidget");
+    QHBoxLayout* buttonsLayout = new QHBoxLayout(buttonsWidget);
+    buttonsLayout->setSpacing(10);
+    buttonsLayout->setContentsMargins(10, 8, 10, 8);
 
-    // Fill Определение
-    QString opredText;
-    for (auto it = stats.opredelenieSentences.begin(); it != stats.opredelenieSentences.end(); ++it) {
-        opredText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
-    }
-    if (opredText.isEmpty()) opredText = "Нет данных";
-    ui->text_opred->setPlainText(opredText);
+    struct StatData {
+        QString title;
+        int count;
+        QMap<int, QList<QString>>* data;
+    };
 
-    // Fill Дополнение
-    QString dopText;
-    for (auto it = stats.dopolnenieSentences.begin(); it != stats.dopolnenieSentences.end(); ++it) {
-        dopText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
-    }
-    if (dopText.isEmpty()) dopText = "Нет данных";
-    ui->text_dop->setPlainText(dopText);
+    QList<StatData> statList = {
+        {"Подлежащие", stats.podlezhaschee, &stats.podlezhascheeSentences},
+        {"Сказуемые", stats.skazuemoe, &stats.skazuemoeSentences},
+        {"Определения", stats.opredelenie, &stats.opredelenieSentences},
+        {"Дополнения", stats.dopolnenie, &stats.dopolnenieSentences},
+        {"Обстоятельства", stats.obstoyatelstvo, &stats.obstoyatelstvoSentences},
+        {"Другое", stats.drugoe, &stats.drugoeSentences}
+    };
 
-    // Fill Обстоятельство
-    QString obText;
-    for (auto it = stats.obstoyatelstvoSentences.begin(); it != stats.obstoyatelstvoSentences.end(); ++it) {
-        obText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
-    }
-    if (obText.isEmpty()) obText = "Нет данных";
-    ui->text_ob->setPlainText(obText);
+    QScrollArea* contentArea = new QScrollArea();
+    contentArea->setObjectName("contentScrollArea");
+    contentArea->setWidgetResizable(true);
+    contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
-    // Fill Другое
-    QString drugoeText;
-    for (auto it = stats.drugoeSentences.begin(); it != stats.drugoeSentences.end(); ++it) {
-        drugoeText += QString("Предложение %1: %2\n").arg(it.key()).arg(it.value().join(", "));
+    QWidget* contentWidget = new QWidget();
+    QVBoxLayout* contentLayout = new QVBoxLayout(contentWidget);
+    contentLayout->setSpacing(0);
+    contentLayout->setContentsMargins(0, 0, 0, 0);
+
+    contentArea->setWidget(contentWidget);
+
+    QList<QPushButton*> buttons;
+    QList<QWidget*> contentWidgets;
+
+    for (const auto& stat : statList) {
+        QPushButton* button = new QPushButton(QString("%1 (%2)").arg(stat.title).arg(stat.count));
+        button->setObjectName("statButton");
+        buttonsLayout->addWidget(button);
+        buttons.append(button);
+
+        QWidget* statContent = new QWidget();
+        QVBoxLayout* statContentLayout = new QVBoxLayout(statContent);
+        statContentLayout->setSpacing(8);
+        statContentLayout->setContentsMargins(15, 15, 15, 15);
+
+        if (stat.data->isEmpty()) {
+            QLabel* noDataLabel = new QLabel("Нет данных");
+            noDataLabel->setObjectName("noDataLabel");
+            noDataLabel->setAlignment(Qt::AlignCenter);
+            statContentLayout->addWidget(noDataLabel);
+        } else {
+            for (auto it = stat.data->begin(); it != stat.data->end(); ++it) {
+                QString sentenceText = QString("Предложение %1: %2").arg(it.key()).arg(it.value().join(", "));
+                QLabel* sentenceLabel = new QLabel(sentenceText);
+                sentenceLabel->setObjectName("sentenceLabel");
+                sentenceLabel->setWordWrap(true);
+                statContentLayout->addWidget(sentenceLabel);
+            }
+        }
+
+        statContent->setVisible(false);
+        contentLayout->addWidget(statContent);
+        contentWidgets.append(statContent);
     }
-    if (drugoeText.isEmpty()) drugoeText = "Нет данных";
-    ui->text_drugoe->setPlainText(drugoeText);
+
+    buttonsLayout->addStretch();
+    ui->statisticsContainerLayout->addWidget(buttonsWidget);
+    ui->statisticsContainerLayout->addWidget(contentArea);
+
+    for (int i = 0; i < buttons.size(); i++) {
+        int index = i;
+        connect(buttons[i], &QPushButton::clicked, [this, buttons, contentWidgets, index]() {
+            for (int j = 0; j < contentWidgets.size(); j++) {
+                contentWidgets[j]->setVisible(false);
+                buttons[j]->setProperty("expanded", false);
+                buttons[j]->style()->unpolish(buttons[j]);
+                buttons[j]->style()->polish(buttons[j]);
+            }
+
+            contentWidgets[index]->setVisible(true);
+            buttons[index]->setProperty("expanded", true);
+            buttons[index]->style()->unpolish(buttons[index]);
+            buttons[index]->style()->polish(buttons[index]);
+        });
+    }
+
+    if (!buttons.isEmpty() && !contentWidgets.isEmpty()) {
+        contentWidgets[0]->setVisible(true);
+        buttons[0]->setProperty("expanded", true);
+        buttons[0]->style()->unpolish(buttons[0]);
+        buttons[0]->style()->polish(buttons[0]);
+    }
 
     QString statsText = QString("Статистика: Подлежащих: %1 | Сказуемых: %2 | Определений: %3 | Дополнений: %4 | Обстоятельств: %5 | Прочих: %6")
-                            .arg(stats.podlezhaschee)
-                            .arg(stats.skazuemoe)
-                            .arg(stats.opredelenie)
-                            .arg(stats.dopolnenie)
-                            .arg(stats.obstoyatelstvo)
-                            .arg(stats.drugoe);
-
+                            .arg(stats.podlezhaschee).arg(stats.skazuemoe).arg(stats.opredelenie)
+                            .arg(stats.dopolnenie).arg(stats.obstoyatelstvo).arg(stats.drugoe);
     statusBar()->showMessage(statsText, 5000);
 }
 
@@ -732,13 +868,17 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
         QMessageBox::critical(this, "Процесс аварийно завершен",
                               "Python скрипт аварийно завершился.",
                               QMessageBox::Ok);
+        showPlaceholderInResults();
+        showPlaceholderStatistics();
         ui->btn_download->setEnabled(false);
     } else if (exitCode != 0) {
         QMessageBox::warning(this, "Ошибка скрипта",
-                             QString("Python скрипт завершился с кодом ошибки: %1\n"
+                             QString("Python скрипт завершился с кодом ошибки: %1\n\n"
                                      "Проверьте, что установлены все необходимые библиотеки:\n"
                                      "pip install natasha").arg(exitCode),
                              QMessageBox::Ok);
+        showPlaceholderInResults();
+        showPlaceholderStatistics();
         ui->btn_download->setEnabled(false);
     } else {
         statusBar()->showMessage("Синтаксический анализ успешно завершен!", 3000);
@@ -748,8 +888,8 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
             updateDisplay();
             ui->btn_download->setEnabled(true);
         } else {
-            QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
-            item->setText(0, "Анализ завершен, но данные не получены");
+            showPlaceholderInResults();
+            showPlaceholderStatistics();
             ui->btn_download->setEnabled(false);
         }
     }
@@ -758,36 +898,46 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
 bool MainWindow::shouldShowWord(const WordInfo& word)
 {
     QString type = word.sentence;
+
     if (type == "Подлежащее") return ui->c_pod->isChecked();
     if (type == "Сказуемое") return ui->c_skaz->isChecked();
     if (type == "Определение") return ui->c_opred->isChecked();
     if (type == "Дополнение") return ui->c_dop->isChecked();
     if (type == "Обстоятельство") return ui->c_ob->isChecked();
-    if (type == "Однородный член") return ui->c_none->isChecked();
-
     return ui->c_none->isChecked();
 }
 
 void MainWindow::updateDisplay()
 {
-    ui->treeWidget->clear();
     if (sentenceTexts.isEmpty() || wordsBySentence.isEmpty()) {
-        QTreeWidgetItem* item = new QTreeWidgetItem(ui->treeWidget);
-        item->setText(0, "Нет данных для отображения");
+        showPlaceholderInResults();
         return;
     }
 
+    showResultsPage();
+    ui->treeWidget->clear();
+    ui->treeWidget->setRootIsDecorated(true);
+    ui->treeWidget->setExpandsOnDoubleClick(true);
+
     QList<int> sentNumbers = sentenceTexts.keys();
     std::sort(sentNumbers.begin(), sentNumbers.end());
+
     for (int sentNum : sentNumbers) {
         QString sentenceText = sentenceTexts[sentNum];
+
         QTreeWidgetItem* sentItem = new QTreeWidgetItem(ui->treeWidget);
         sentItem->setText(0, QString("Предложение %1: %2").arg(sentNum).arg(sentenceText));
         sentItem->setExpanded(false);
+        sentItem->setForeground(0, QBrush(QColor("#495057")));
+
+        QFont sentFont = sentItem->font(0);
+        sentFont.setBold(true);
+        sentItem->setFont(0, sentFont);
 
         if (wordsBySentence.contains(sentNum)) {
             const QList<WordInfo>& words = wordsBySentence[sentNum];
             bool hasWords = false;
+
             for (const WordInfo& word : words) {
                 if (shouldShowWord(word)) {
                     hasWords = true;
@@ -795,23 +945,32 @@ void MainWindow::updateDisplay()
                                               .arg(word.text)
                                               .arg(word.sentence)
                                               .arg(word.posRussian);
+
                     QTreeWidgetItem* wordItem = new QTreeWidgetItem(sentItem);
                     wordItem->setText(0, displayText);
                 }
             }
+
             if (!hasWords) {
                 QTreeWidgetItem* noWordsItem = new QTreeWidgetItem(sentItem);
                 noWordsItem->setText(0, "Нет слов, соответствующих выбранным фильтрам");
+                noWordsItem->setForeground(0, QBrush(QColor("#6c757d")));
+                noWordsItem->setTextAlignment(0, Qt::AlignCenter);
+
+                QFont italicFont = noWordsItem->font(0);
+                italicFont.setItalic(true);
+                noWordsItem->setFont(0, italicFont);
             }
         }
     }
+
     ui->treeWidget->collapseAll();
 }
 
 void MainWindow::processPythonOutput(const QString& output)
 {
-    qDebug() << output;
     QStringList lines = output.split("\n", Qt::SkipEmptyParts);
+
     for (QString& line : lines) {
         line = line.trimmed();
     }
@@ -820,14 +979,13 @@ void MainWindow::processPythonOutput(const QString& output)
         return;
     }
 
-    QString formattedFilePath;
     for (const QString& line : lines) {
         if (line.startsWith("FORMATTED_FILE:")) {
-            formattedFilePath = line.mid(15);
             continue;
         }
 
         QStringList parts = line.split("|");
+
         if (parts.isEmpty()) continue;
 
         if (parts[0] == "SENT" && parts.size() >= 3) {

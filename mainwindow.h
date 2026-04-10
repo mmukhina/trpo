@@ -7,12 +7,15 @@
 #include <QLabel>
 #include <QTextBrowser>
 #include <QMap>
+#include <QVBoxLayout>
+#include <QScrollArea>
+#include <QPushButton>
+#include <QFrame>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
 QT_END_NAMESPACE
 
-// Структура для хранения информации о слове
 struct WordInfo {
     QString text;
     QString speech;
@@ -21,16 +24,15 @@ struct WordInfo {
     QString posRussian;
 };
 
-// Структура для хранения статистики
 struct Statistics {
-    int podlezhaschee = 0;      // Подлежащее
-    int skazuemoe = 0;          // Сказуемое
-    int opredelenie = 0;        // Определение
-    int dopolnenie = 0;         // Дополнение
-    int obstoyatelstvo = 0;     // Обстоятельство
-    int drugoe = 0;             // Другое
+    int podlezhaschee = 0;
+    int skazuemoe = 0;
+    int opredelenie = 0;
+    int dopolnenie = 0;
+    int obstoyatelstvo = 0;
+    int drugoe = 0;
 
-    QMap<int, QList<QString>> podlezhascheeSentences;  // предложение -> список слов
+    QMap<int, QList<QString>> podlezhascheeSentences;
     QMap<int, QList<QString>> skazuemoeSentences;
     QMap<int, QList<QString>> opredelenieSentences;
     QMap<int, QList<QString>> dopolnenieSentences;
@@ -57,7 +59,6 @@ private slots:
     void on_btn_search_clicked();
     void on_btn_upload_clicked();
     void on_btn_download_clicked();
-
     void handlePythonOutput();
     void handlePythonError();
     void handlePythonFinished(int exitCode, QProcess::ExitStatus exitStatus);
@@ -67,17 +68,9 @@ private:
     QProcess *pythonProcess;
     QString currentTempFile;
     QString currentFileName;
-
-    // Данные от Python
     QMap<int, QString> sentenceTexts;
     QMap<int, QList<WordInfo>> wordsBySentence;
-
-    // Статистика
     Statistics stats;
-
-    // Для отображения статистики
-    QMap<QString, QLabel*> statsCountLabels;
-    QMap<QString, QTextBrowser*> statsTextBrowsers;
 
     void setupPythonProcess();
     void updateAllCheckboxState();
@@ -93,6 +86,9 @@ private:
     bool hasOnlyNumbers(const QString& text);
     void calculateStatistics();
     void updateStatisticsDisplay();
+    void showPlaceholderStatistics();
+    void showPlaceholderInResults();
+    void showResultsPage();
 };
 
 #endif // MAINWINDOW_H
