@@ -34,10 +34,12 @@
         padding: 6px;
         font-size: 12px;
         background-color: #fafbfc;
+        color: #2c3e50
     }
     QTextEdit:focus {
         border-color: #3498db;
         background-color: #ffffff;
+        color: #2c3e50
     }
     
     /* Button styling */

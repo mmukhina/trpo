@@ -648,6 +648,9 @@ void MainWindow::on_btn_upload_clicked()
 
     // Apply proper stylesheet targeting QMessageBox buttons
     msgBox.setStyleSheet(
+        "QMessageBox {"
+        "    background-color: white;"
+        "}"
         "QMessageBox QPushButton {"
         "    background-color: #ecf0f1;"
         "    color: #2c3e50;"
@@ -665,7 +668,8 @@ void MainWindow::on_btn_upload_clicked()
         "    background-color: #bdc3c7;"
         "}"
         "QLabel {"
-        "    color: #2c3e50;"
+        "    color: black;"
+        "    background-color: white;"
         "    font-size: 12px;"
         "}"
         );
