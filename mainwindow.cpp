@@ -28,6 +28,10 @@ void MainWindow::generateHtmlReport()
         QMessageBox::warning(this, "Внимание", "Нет данных для сохранения.");
         return;
     }
+
+    // Пересчитываем статистику
+    calculateStatistics();
+
     QString fileName = QFileDialog::getSaveFileName(this, "Сохранить отчет",
                                                     QDir::currentPath() + "/syntax_report.html", "HTML файлы (*.html)");
     if (fileName.isEmpty()) return;
@@ -37,118 +41,112 @@ void MainWindow::generateHtmlReport()
 
     QTextStream out(&file);
     out.setEncoding(QStringConverter::Utf8);
+
+    // Начинаем генерацию HTML
     out << "<!DOCTYPE html><html><head><meta charset='UTF-8'>";
     out << "<title>Синтаксический разбор текста</title>";
     out << "<style>"
-        << "body { font-family: 'Segoe UI', Arial, sans-serif; padding: 30px; background: #f0f2f5; color: #333; }"
-        << ".container { max-width: 1200px; margin: auto; background: white; padding: 40px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }"
-        << "h1 { text-align: center; color: #2c3e50; margin-bottom: 30px; }"
+        << "body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f0f2f5; color: #333; }"
+        << ".container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }"
+        << "h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }"
+        << "h2 { color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }"
+        << "h3 { color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }"
 
-        << ".tabs { overflow: hidden; border-bottom: 1px solid #dee2e6; margin-bottom: 20px; }"
-        << ".tab-button { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 14px 16px; transition: 0.3s; font-size: 17px; border-radius: 8px 8px 0 0; }"
-        << ".tab-button:hover { background-color: #e9ecef; }"
-        << ".tab-button.active { background-color: #3498db; color: white; }"
-        << ".tab-content { display: none; padding: 20px 0; animation: fadeEffect 0.5s; }"
-        << "@keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }"
+        // Стили для предложений
+        << ".sentence { margin-bottom: 30px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }"
+        << ".sentence-header { background: #f8f9fa; padding: 10px 15px; font-weight: bold; color: #2c3e50; border-bottom: 1px solid #dee2e6; }"
+        << ".sentence-content { padding: 15px; line-height: 2.5; }"
 
-        << ".legend { background: #f8f9fa; border: 1px solid #dee2e6; padding: 20px; border-radius: 8px; margin-bottom: 40px; }"
-        << ".legend h3 { margin-top: 0; font-size: 18px; color: #495057; }"
-        << ".legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }"
-        << ".legend-item { display: flex; align-items: center; gap: 10px; font-size: 14px; }"
+        // Стили для слов
+        << ".word { display: inline-block; margin: 0 3px; text-align: center; }"
+        << ".pos { font-size: 10px; color: #666; background: #e8f4fd; padding: 2px 6px; border-radius: 4px; display: block; }"
+        << ".text { font-size: 16px; display: block; }"
 
-        << ".stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 20px; margin-bottom: 30px; }"
-        << ".stat-card { background: #3498db; color: white; padding: 20px; border-radius: 12px; text-align: center; }"
-        << ".stat-card h3 { margin: 0 0 10px 0; font-size: 16px; }"
-        << ".stat-number { font-size: 36px; font-weight: bold; margin: 10px 0; }"
+        // Подчеркивания для членов предложения
+        << ".pod { border-bottom: 2px solid black; }"
+        << ".skaz { border-bottom: 3px double black; }"
+        << ".opred { text-decoration: underline wavy #27ae60; }"
+        << ".dop { border-bottom: 2px dashed #2980b9; }"
+        << ".ob { border-bottom: 2px dotted #e67e22; }"
 
-        << ".stat-section { margin-bottom: 15px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }"
-        << ".stat-header { background: #f8f9fa; padding: 12px 20px; cursor: pointer; user-select: none; transition: background 0.2s; }"
+        // Статистика - карточки
+        << ".stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }"
+        << ".stat-card { background: #3498db; color: white; padding: 15px; border-radius: 8px; text-align: center; }"
+        << ".stat-card h3 { margin: 0 0 5px 0; font-size: 14px; }"
+        << ".stat-number { font-size: 28px; font-weight: bold; }"
+
+        // Статистика - детальные секции
+        << ".stat-section { margin-bottom: 20px; border: 1px solid #dee2e6; border-radius: 8px; }"
+        << ".stat-header { background: #f8f9fa; padding: 12px 15px; cursor: pointer; font-weight: bold; }"
         << ".stat-header:hover { background: #e9ecef; }"
-        << ".toggle-icon { display: inline-block; transition: transform 0.2s; font-size: 14px; margin-right: 8px; }"
-        << ".stat-header .item-count { font-size: 12px; color: #6c757d; font-weight: normal; margin-left: 8px; }"
-        << ".stat-content { padding: 15px 20px; background: white; border-top: 1px solid #dee2e6; max-height: 400px; overflow-y: auto; }"
-        << ".stat-list-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(300px, 1fr)); gap: 12px; }"
-        << ".stat-list-item { background: #f8f9fa; padding: 10px 15px; border-radius: 6px; border-left: 3px solid #3498db; }"
-        << ".sentence-num { font-weight: bold; color: #2c3e50; margin-bottom: 5px; font-size: 13px; }"
-        << ".word-list { color: #495057; font-size: 13px; line-height: 1.4; }"
-        << ".no-data { color: #6c757d; font-style: italic; padding: 20px; text-align: center; }"
+        << ".stat-content { padding: 15px; display: none; max-height: 400px; overflow-y: auto; }"
+        << ".stat-item { background: #f8f9fa; padding: 8px 12px; margin-bottom: 8px; border-radius: 6px; border-left: 3px solid #3498db; }"
+        << ".sentence-num { font-weight: bold; color: #2c3e50; }"
 
-        << ".sentence-block { margin-bottom: 40px; line-height: 3; }"
-        << ".word-container { display: inline-flex; flex-direction: column; align-items: center; margin: 0 5px; vertical-align: bottom; }"
-        << ".pos-label { font-size: 11px; color: #2c3e50; text-transform: none; line-height: 1.2; margin-bottom: 5px; font-weight: 600; background: #e8f4fd; padding: 2px 8px; border-radius: 4px; }"
-        << ".word-text { font-size: 18px; white-space: nowrap; padding: 0 2px; }"
-
-        << ".pod { border-bottom: 2px solid black; } "
-        << ".skaz { border-bottom: 4px double black; } "
-        << ".opred { text-decoration: underline wavy #3498db; } "
-        << ".dop { border-bottom: 2px dashed #3498db; } "
-        << ".ob { border-bottom: 2px dotted #3498db; } "
-        << ".none { border-bottom: none; }"
-
-        << "::-webkit-scrollbar { width: 8px; height: 8px; }"
-        << "::-webkit-scrollbar-track { background: #f1f1f1; border-radius: 4px; }"
-        << "::-webkit-scrollbar-thumb { background: #c1c1c1; border-radius: 4px; }"
-        << "::-webkit-scrollbar-thumb:hover { background: #a8a8a8; }"
         << "</style>"
         << "<script>"
+        << "function toggleSection(id) {"
+        << "  var content = document.getElementById(id);"
+        << "  if (content.style.display === 'none' || content.style.display === '') {"
+        << "    content.style.display = 'block';"
+        << "  } else {"
+        << "    content.style.display = 'none';"
+        << "  }"
+        << "}"
+
+        // Функция для открытия вкладок
         << "function openTab(evt, tabName) {"
-        << "  var i, tabcontent, tabbuttons;"
+        << "  var i, tabcontent, tablinks;"
         << "  tabcontent = document.getElementsByClassName('tab-content');"
         << "  for (i = 0; i < tabcontent.length; i++) {"
         << "    tabcontent[i].style.display = 'none';"
         << "  }"
-        << "  tabbuttons = document.getElementsByClassName('tab-button');"
-        << "  for (i = 0; i < tabbuttons.length; i++) {"
-        << "    tabbuttons[i].className = tabbuttons[i].className.replace(' active', '');"
+        << "  tablinks = document.getElementsByClassName('tab-link');"
+        << "  for (i = 0; i < tablinks.length; i++) {"
+        << "    tablinks[i].className = tablinks[i].className.replace(' active', '');"
         << "  }"
         << "  document.getElementById(tabName).style.display = 'block';"
         << "  evt.currentTarget.className += ' active';"
         << "}"
-        << "function toggleSection(sectionId) {"
-        << "  var content = document.getElementById(sectionId);"
-        << "  var icon = document.getElementById(sectionId + '-icon');"
-        << "  if (content.style.display === 'none' || content.style.display === '') {"
-        << "    content.style.display = 'block';"
-        << "    icon.innerHTML = '▼';"
-        << "    icon.style.transform = 'rotate(0deg)';"
-        << "  } else {"
-        << "    content.style.display = 'none';"
-        << "    icon.innerHTML = '▶';"
-        << "  }"
-        << "}"
+
+        // Открыть первую вкладку по умолчанию
         << "document.addEventListener('DOMContentLoaded', function() {"
-        << "  var sections = document.querySelectorAll('.stat-content');"
-        << "  for (var i = 0; i < sections.length; i++) {"
-        << "    sections[i].style.display = 'none';"
-        << "  }"
+        << "  document.getElementById('Analysis').style.display = 'block';"
         << "});"
         << "</script>"
+
+        // Стили для вкладок
+        << "<style>"
+        << ".tab { overflow: hidden; border-bottom: 1px solid #dee2e6; margin-bottom: 20px; }"
+        << ".tab-link { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 12px 20px; transition: 0.3s; font-size: 16px; border-radius: 8px 8px 0 0; }"
+        << ".tab-link:hover { background-color: #e9ecef; }"
+        << ".tab-link.active { background-color: #3498db; color: white; }"
+        << ".tab-content { display: none; animation: fadeEffect 0.3s; }"
+        << "@keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }"
+        << "</style>"
+
         << "</head><body><div class='container'>";
 
+    // Заголовок
     out << "<h1>Синтаксический разбор текста</h1>";
 
-    out << "<div class='tabs'>"
-        << "<button class='tab-button active' onclick=\"openTab(event, 'Analysis')\">Анализ предложений</button>"
-        << "<button class='tab-button' onclick=\"openTab(event, 'Statistics')\">Статистика</button>"
+    // Вкладки
+    out << "<div class='tab'>"
+        << "<button class='tab-link active' onclick=\"openTab(event, 'Analysis')\">Анализ предложений</button>"
+        << "<button class='tab-link' onclick=\"openTab(event, 'Statistics')\">Статистика</button>"
         << "</div>";
 
-    out << "<div id='Analysis' class='tab-content' style='display:block'>";
-
-    out << "<div class='legend'>"
-        << "<h3>Условные обозначения:</h3>"
-        << "<div class='legend-grid'>"
-        << "<div class='legend-item'><span class='word-text pod'>Слово</span> — Подлежащее</div>"
-        << "<div class='legend-item'><span class='word-text skaz'>Слово</span> — Сказуемое</div>"
-        << "<div class='legend-item'><span class='word-text opred'>Слово</span> — Определение</div>"
-        << "<div class='legend-item'><span class='word-text dop'>Слово</span> — Дополнение</div>"
-        << "<div class='legend-item'><span class='word-text ob'>Слово</span> — Обстоятельство</div>"
-        << "</div></div>";
+    // ========== ВКЛАДКА: АНАЛИЗ ПРЕДЛОЖЕНИЙ ==========
+    out << "<div id='Analysis' class='tab-content'>";
 
     QList<int> sentNumbers = sentenceTexts.keys();
     std::sort(sentNumbers.begin(), sentNumbers.end());
+
     for (int sentNum : sentNumbers) {
-        out << "<div class='sentence-block'>";
-        out << "<div style='color: #999; font-size: 12px; margin-bottom: 10px;'>Предложение " << sentNum << "</div>";
+        out << "<div class='sentence'>";
+        out << "<div class='sentence-header'>Предложение " << sentNum << "</div>";
+        out << "<div class='sentence-content'>";
+
         for (const WordInfo& word : wordsBySentence[sentNum]) {
             QString cssClass;
             if (word.sentence == "Подлежащее") cssClass = "pod";
@@ -156,7 +154,7 @@ void MainWindow::generateHtmlReport()
             else if (word.sentence == "Определение") cssClass = "opred";
             else if (word.sentence == "Дополнение") cssClass = "dop";
             else if (word.sentence == "Обстоятельство") cssClass = "ob";
-            else cssClass = "none";
+            else cssClass = "";
 
             QString displayPos = word.posRussian;
             if (displayPos.isEmpty() || word.speech == "PUNCT") {
@@ -168,20 +166,20 @@ void MainWindow::generateHtmlReport()
             escapedText.replace("<", "&lt;");
             escapedText.replace(">", "&gt;");
 
-            out << "<div class='word-container'>"
-                << "<span class='pos-label'>" << displayPos << "</span>"
-                << "<span class='word-text " << cssClass << "'>" << escapedText << "</span>"
+            out << "<div class='word'>"
+                << "<span class='pos'>" << displayPos << "</span>"
+                << "<span class='text " << cssClass << "'>" << escapedText << "</span>"
                 << "</div>";
         }
-        out << "</div><hr style='border: 0; border-top: 1px solid #eee;'>";
-    }
 
+        out << "</div></div>";
+    }
     out << "</div>";
 
-    // Statistics tab with expandable sections
+    // ========== ВКЛАДКА: СТАТИСТИКА ==========
     out << "<div id='Statistics' class='tab-content'>";
 
-    // Summary cards
+    // Карточки с общей статистикой
     out << "<div class='stats-grid'>"
         << "<div class='stat-card'><h3>Подлежащее</h3><div class='stat-number'>" << stats.podlezhaschee << "</div></div>"
         << "<div class='stat-card'><h3>Сказуемое</h3><div class='stat-number'>" << stats.skazuemoe << "</div></div>"
@@ -191,47 +189,48 @@ void MainWindow::generateHtmlReport()
         << "<div class='stat-card'><h3>Другое</h3><div class='stat-number'>" << stats.drugoe << "</div></div>"
         << "</div>";
 
-    out << "<h3 style='margin-top: 30px; margin-bottom: 15px;'>Детальная статистика по предложениям</h3>";
-
-    // Helper lambda to create expandable sections
-    auto createExpandableSection = [&out](const QString& title, const QMap<int, QList<QString>>& data, const QString& sectionId) {
-        int totalItems = 0;
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            totalItems += it.value().size();
+    // Детальная статистика по категориям
+    auto addStatSection = [&out](const QString& title, const QMap<int, QList<QString>>& data, const QString& id) {
+        if (data.isEmpty()) {
+            out << "<div class='stat-section'>"
+                << "<div class='stat-header' onclick='toggleSection(\"" << id << "\")'>"
+                << "▼ " << title << " (0 предложений)"
+                << "</div>"
+                << "<div class='stat-content' id='" << id << "'>"
+                << "<p style='color: #6c757d; font-style: italic; text-align: center;'>Нет данных</p>"
+                << "</div></div>";
+            return;
         }
 
         out << "<div class='stat-section'>"
-            << "<div class='stat-header' onclick=\"toggleSection('" << sectionId << "')\">"
-            << "<span class='toggle-icon' id='" << sectionId << "-icon'>▶</span> "
-            << "<strong>" << title << "</strong> <span class='item-count'>(" << totalItems << " элементов)</span>"
+            << "<div class='stat-header' onclick='toggleSection(\"" << id << "\")'>"
+            << "▼ " << title << " (" << data.size() << " предложений)"
             << "</div>"
-            << "<div id='" << sectionId << "' class='stat-content' style='display: none;'>";
+            << "<div class='stat-content' id='" << id << "'>";
 
-        if (data.isEmpty()) {
-            out << "<p class='no-data'>Нет данных</p>";
-        } else {
-            out << "<div class='stat-list-grid'>";
-            for (auto it = data.begin(); it != data.end(); ++it) {
-                out << "<div class='stat-list-item'>"
-                    << "<div class='sentence-num'>Предложение " << it.key() << "</div>"
-                    << "<div class='word-list'>" << it.value().join(", ") << "</div>"
-                    << "</div>";
-            }
-            out << "</div>";
+        for (auto it = data.begin(); it != data.end(); ++it) {
+            QString words = it.value().join(", ");
+            out << "<div class='stat-item'>"
+                << "<span class='sentence-num'>Предложение " << it.key() << ":</span> "
+                << words
+                << "</div>";
         }
+
         out << "</div></div>";
     };
 
-    createExpandableSection("Подлежащие", stats.podlezhascheeSentences, "section-pod");
-    createExpandableSection("Сказуемые", stats.skazuemoeSentences, "section-skaz");
-    createExpandableSection("Определения", stats.opredelenieSentences, "section-opred");
-    createExpandableSection("Дополнения", stats.dopolnenieSentences, "section-dop");
-    createExpandableSection("Обстоятельства", stats.obstoyatelstvoSentences, "section-ob");
-    createExpandableSection("Другое", stats.drugoeSentences, "section-drugoe");
+    addStatSection("Подлежащие", stats.podlezhascheeSentences, "stat-pod");
+    addStatSection("Сказуемые", stats.skazuemoeSentences, "stat-skaz");
+    addStatSection("Определения", stats.opredelenieSentences, "stat-opred");
+    addStatSection("Дополнения", stats.dopolnenieSentences, "stat-dop");
+    addStatSection("Обстоятельства", stats.obstoyatelstvoSentences, "stat-ob");
+    addStatSection("Другое", stats.drugoeSentences, "stat-drugoe");
 
-    out << "</div>";
+    out << "</div>"; // Закрываем Statistics tab
     out << "</div></body></html>";
     file.close();
+
+    // Открываем файл в браузере
     QDesktopServices::openUrl(QUrl::fromLocalFile(fileName));
 }
 
@@ -749,12 +748,16 @@ void MainWindow::calculateStatistics()
 
 void MainWindow::updateStatisticsDisplay()
 {
+    // Clear existing layout efficiently
     QLayoutItem* child;
     while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
-        if (child->widget()) delete child->widget();
+        if (child->widget()) {
+            child->widget()->deleteLater();
+        }
         delete child;
     }
 
+    // Create buttons widget
     QWidget* buttonsWidget = new QWidget();
     buttonsWidget->setObjectName("statButtonsWidget");
     QHBoxLayout* buttonsLayout = new QHBoxLayout(buttonsWidget);
@@ -776,80 +779,101 @@ void MainWindow::updateStatisticsDisplay()
         {"Другое", stats.drugoe, &stats.drugoeSentences}
     };
 
-    QScrollArea* contentArea = new QScrollArea();
-    contentArea->setObjectName("contentScrollArea");
-    contentArea->setWidgetResizable(true);
-    contentArea->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-
-    QWidget* contentWidget = new QWidget();
-    QVBoxLayout* contentLayout = new QVBoxLayout(contentWidget);
-    contentLayout->setSpacing(0);
-    contentLayout->setContentsMargins(0, 0, 0, 0);
-
-    contentArea->setWidget(contentWidget);
+    // Use QStackedWidget for faster switching instead of showing/hiding
+    QStackedWidget* stackedContent = new QStackedWidget();
+    stackedContent->setObjectName("contentScrollArea");
+    stackedContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     QList<QPushButton*> buttons;
-    QList<QWidget*> contentWidgets;
+    QList<QTextBrowser*> textBrowsers;
 
+    // Pre-create all content pages
     for (const auto& stat : statList) {
+        // Create button
         QPushButton* button = new QPushButton(QString("%1 (%2)").arg(stat.title).arg(stat.count));
         button->setObjectName("statButton");
         buttonsLayout->addWidget(button);
         buttons.append(button);
 
-        QWidget* statContent = new QWidget();
-        QVBoxLayout* statContentLayout = new QVBoxLayout(statContent);
-        statContentLayout->setSpacing(8);
-        statContentLayout->setContentsMargins(15, 15, 15, 15);
+        // Create content page with QTextBrowser (faster than many QLabels)
+        QWidget* statPage = new QWidget();
+        QVBoxLayout* pageLayout = new QVBoxLayout(statPage);
+        pageLayout->setSpacing(8);
+        pageLayout->setContentsMargins(15, 15, 15, 15);
 
+        QTextBrowser* textBrowser = new QTextBrowser();
+        textBrowser->setObjectName("statTextBrowser");
+        textBrowser->setStyleSheet(
+            "QTextBrowser {"
+            "    background-color: transparent;"
+            "    border: none;"
+            "    font-size: 12px;"
+            "    font-family: 'Segoe UI', Arial, sans-serif;"
+            "}"
+            );
+
+        // Build HTML content
+        QString htmlContent;
         if (stat.data->isEmpty()) {
-            QLabel* noDataLabel = new QLabel("Нет данных");
-            noDataLabel->setObjectName("noDataLabel");
-            noDataLabel->setAlignment(Qt::AlignCenter);
-            statContentLayout->addWidget(noDataLabel);
+            htmlContent = "<p style='color: #6c757d; font-style: italic; text-align: center; padding: 20px;'>Нет данных</p>";
         } else {
+            htmlContent = "<div style='display: flex; flex-direction: column; gap: 8px;'>";
             for (auto it = stat.data->begin(); it != stat.data->end(); ++it) {
-                QString sentenceText = QString("Предложение %1: %2").arg(it.key()).arg(it.value().join(", "));
-                QLabel* sentenceLabel = new QLabel(sentenceText);
-                sentenceLabel->setObjectName("sentenceLabel");
-                sentenceLabel->setWordWrap(true);
-                statContentLayout->addWidget(sentenceLabel);
+                QString wordsText = it.value().join(", ");
+                // Truncate if too long for performance
+                if (wordsText.length() > 200) {
+                    wordsText = wordsText.left(197) + "...";
+                }
+                htmlContent += QString(
+                                   "<div style='background: #f8f9fa; padding: 8px 12px; border-radius: 6px; border-left: 3px solid #3498db;'>"
+                                   "<span style='font-weight: bold; color: #2c3e50;'>Предложение %1:</span> "
+                                   "<span style='color: #495057;'>%2</span>"
+                                   "</div>"
+                                   ).arg(it.key()).arg(wordsText);
             }
+            htmlContent += "</div>";
         }
 
-        statContent->setVisible(false);
-        contentLayout->addWidget(statContent);
-        contentWidgets.append(statContent);
+        textBrowser->setHtml(htmlContent);
+        pageLayout->addWidget(textBrowser);
+        textBrowsers.append(textBrowser);
+        stackedContent->addWidget(statPage);
     }
 
     buttonsLayout->addStretch();
-    ui->statisticsContainerLayout->addWidget(buttonsWidget);
-    ui->statisticsContainerLayout->addWidget(contentArea);
 
+    // Connect buttons to stacked widget
     for (int i = 0; i < buttons.size(); i++) {
         int index = i;
-        connect(buttons[i], &QPushButton::clicked, [this, buttons, contentWidgets, index]() {
-            for (int j = 0; j < contentWidgets.size(); j++) {
-                contentWidgets[j]->setVisible(false);
+        connect(buttons[i], &QPushButton::clicked, [this, buttons, stackedContent, index]() {
+            // Update button styles
+            for (int j = 0; j < buttons.size(); j++) {
                 buttons[j]->setProperty("expanded", false);
                 buttons[j]->style()->unpolish(buttons[j]);
                 buttons[j]->style()->polish(buttons[j]);
             }
-
-            contentWidgets[index]->setVisible(true);
             buttons[index]->setProperty("expanded", true);
             buttons[index]->style()->unpolish(buttons[index]);
             buttons[index]->style()->polish(buttons[index]);
+
+            // Switch page instantly
+            stackedContent->setCurrentIndex(index);
         });
     }
 
-    if (!buttons.isEmpty() && !contentWidgets.isEmpty()) {
-        contentWidgets[0]->setVisible(true);
+    // Add everything to main layout
+    ui->statisticsContainerLayout->addWidget(buttonsWidget);
+    ui->statisticsContainerLayout->addWidget(stackedContent);
+
+    // Select first button by default
+    if (!buttons.isEmpty()) {
         buttons[0]->setProperty("expanded", true);
         buttons[0]->style()->unpolish(buttons[0]);
         buttons[0]->style()->polish(buttons[0]);
+        stackedContent->setCurrentIndex(0);
     }
 
+    // Status bar message
     QString statsText = QString("Статистика: Подлежащих: %1 | Сказуемых: %2 | Определений: %3 | Дополнений: %4 | Обстоятельств: %5 | Прочих: %6")
                             .arg(stats.podlezhaschee).arg(stats.skazuemoe).arg(stats.opredelenie)
                             .arg(stats.dopolnenie).arg(stats.obstoyatelstvo).arg(stats.drugoe);

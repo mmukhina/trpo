@@ -13,9 +13,10 @@
   <property name="windowTitle">
    <string>Синтаксический анализатор</string>
   </property>
+  <!-- Force light theme colors - never change -->
   <property name="styleSheet">
    <string notr="true">
-    /* Global background */
+    /* Force light background - override dark mode */
     QMainWindow, QWidget#centralwidget {
         background-color: #e8ecf1;
     }
@@ -27,19 +28,19 @@
         border-radius: 8px;
     }
     
-    /* Text edit styling */
+    /* Text edit styling - remove extra scrollbar */
     QTextEdit {
         border: 1px solid #d0d0d0;
         border-radius: 6px;
         padding: 6px;
         font-size: 12px;
         background-color: #fafbfc;
-        color: #2c3e50
+        color: #2c3e50;
     }
     QTextEdit:focus {
         border-color: #3498db;
         background-color: #ffffff;
-        color: #2c3e50
+        color: #2c3e50;
     }
     
     /* Button styling */
@@ -183,7 +184,8 @@
         background-color: #f0f4f8;
     }
     QTreeWidget::item:selected {
-        color: #495057;
+        background-color: #3498db;
+        color: #ffffff;
     }
     QHeaderView::section {
         background-color: #f8fafc;
@@ -222,7 +224,7 @@
     QPushButton#statButton:hover {
         background-color: #dee2e6;
     }
-    QPushButton#statButton[expanded=&quot;true&quot;] {
+    QPushButton#statButton[expanded="true"] {
         background-color: #3498db;
         color: white;
         border-color: #3498db;
@@ -246,6 +248,9 @@
     }
     QScrollArea#contentScrollArea QScrollBar::handle:vertical:hover {
         background: #3498db;
+    }
+    QScrollArea#contentScrollArea QScrollBar::handle:vertical:pressed {
+        background: #2980b9;
     }
     
     QLabel#sentenceLabel {
@@ -275,7 +280,7 @@
         text-align: center;
     }
     
-    /* Scrollbar styling */
+    /* Scrollbar styling - prevent black color on press */
     QScrollBar:vertical {
         border: none;
         background: #f0f0f0;
@@ -291,8 +296,40 @@
     QScrollBar::handle:vertical:hover {
         background: #3498db;
     }
+    QScrollBar::handle:vertical:pressed {
+        background: #2980b9;
+    }
     QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
         height: 0px;
+    }
+    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+        background: none;
+    }
+    
+    /* Horizontal scrollbar styling */
+    QScrollBar:horizontal {
+        border: none;
+        background: #f0f0f0;
+        height: 8px;
+        border-radius: 4px;
+        margin: 0px;
+    }
+    QScrollBar::handle:horizontal {
+        background: #c0c0c0;
+        min-width: 30px;
+        border-radius: 4px;
+    }
+    QScrollBar::handle:horizontal:hover {
+        background: #3498db;
+    }
+    QScrollBar::handle:horizontal:pressed {
+        background: #2980b9;
+    }
+    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+        width: 0px;
+    }
+    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+        background: none;
     }
     
     /* Status bar styling */
@@ -352,8 +389,17 @@
              <height>100</height>
             </size>
            </property>
+           <property name="maximumSize">
+            <size>
+             <width>16777215</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="placeholderText">
             <string>Введите текст для анализа...</string>
+           </property>
+           <property name="lineWrapMode">
+            <enum>QTextEdit::WidgetWidth</enum>
            </property>
           </widget>
          </item>
