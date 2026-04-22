@@ -198,7 +198,7 @@ void MainWindow::generateHtmlReport()
     out << "<thead><tr style='background:#f8f9fa; border-bottom: 2px solid #dee2e6;'>"
         << "<th style='padding:10px; text-align:left;'>Слово</th>"
         << "<th style='padding:10px; text-align:left;'>Роль</th>"
-        << "<th style='padding:10px; text-align:center; width:80px;'>Кол-во</th>"
+        << "<th style='padding:10px; text-align:center; width:80px;'>Количество</th>"
         << "</tr></thead><tbody>";
 
     QStringList words = wordRoleStats.keys();
@@ -290,7 +290,7 @@ MainWindow::MainWindow(QWidget *parent)
     QTableWidget *tableFreq = new QTableWidget();
     tableFreq->setObjectName("tableWordStats");
     tableFreq->setColumnCount(3);
-    tableFreq->setHorizontalHeaderLabels({"Слово", "Роль", "Кол-во"});
+    tableFreq->setHorizontalHeaderLabels({"Слово", "Роль", "Количество"});
     tableFreq->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     tableFreq->setSelectionBehavior(QAbstractItemView::SelectRows);
     layoutFreq->addWidget(tableFreq);
