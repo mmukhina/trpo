@@ -293,6 +293,7 @@ MainWindow::MainWindow(QWidget *parent)
     tableFreq->setHorizontalHeaderLabels({"Слово", "Роль", "Количество"});
     tableFreq->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     tableFreq->setSelectionBehavior(QAbstractItemView::SelectRows);
+    tableFreq->verticalHeader()->setVisible(false);
     layoutFreq->addWidget(tableFreq);
 
     ui->tabWidget->addTab(tabFreq, "Частотность слов");
