@@ -21,6 +21,8 @@
 #include <QJsonArray>
 #include <QDesktopServices>
 #include <QUrl>
+#include <QTableWidget>
+#include <QHeaderView>
 
 void MainWindow::generateHtmlReport()
 {
@@ -32,8 +34,10 @@ void MainWindow::generateHtmlReport()
     // Пересчитываем статистику
     calculateStatistics();
 
-    QString fileName = QFileDialog::getSaveFileName(this, "Сохранить отчет",
-                                                    QDir::currentPath() + "/syntax_report.html", "HTML файлы (*.html)");
+    QString fileName = QFileDialog::getSaveFileName(this,
+                                                    "Сохранить отчет",
+                                                    lastDirectory + "/syntax_report.html", // <-- Тут используем сохраненную папку
+                                                    "HTML файлы (*.html)");
     if (fileName.isEmpty()) return;
 
     QFile file(fileName);
@@ -82,6 +86,9 @@ void MainWindow::generateHtmlReport()
         << ".stat-content { padding: 15px; display: none; max-height: 400px; overflow-y: auto; }"
         << ".stat-item { background: #f8f9fa; padding: 8px 12px; margin-bottom: 8px; border-radius: 6px; border-left: 3px solid #3498db; }"
         << ".sentence-num { font-weight: bold; color: #2c3e50; }"
+        << ".legend { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 12px; margin: 20px 0; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }"
+        << ".legend-item { display: flex; align-items: center; gap: 8px; color: #6c757d; font-size: 14px; }"
+        << ".legend-word { font-weight: 600; color: #343a40; }"
 
         << "</style>"
         << "<script>"
@@ -127,6 +134,14 @@ void MainWindow::generateHtmlReport()
 
         << "</head><body><div class='container'>";
 
+    out << "<div class='legend'>"
+        << "<div class='legend-item'><span class='legend-word pod'>пример</span> — подлежащее</div>"
+        << "<div class='legend-item'><span class='legend-word skaz'>пример</span> — сказуемое</div>"
+        << "<div class='legend-item'><span class='legend-word opred'>пример</span> — определение</div>"
+        << "<div class='legend-item'><span class='legend-word dop'>пример</span> — дополнение</div>"
+        << "<div class='legend-item'><span class='legend-word ob'>пример</span> — обстоятельство</div>"
+        << "</div>";
+
     // Заголовок
     out << "<h1>Синтаксический разбор текста</h1>";
 
@@ -134,6 +149,7 @@ void MainWindow::generateHtmlReport()
     out << "<div class='tab'>"
         << "<button class='tab-link active' onclick=\"openTab(event, 'Analysis')\">Анализ предложений</button>"
         << "<button class='tab-link' onclick=\"openTab(event, 'Statistics')\">Статистика</button>"
+        << "<button class='tab-link' onclick=\"openTab(event, 'WordFreq')\">Частотность слов</button>"
         << "</div>";
 
     // ========== ВКЛАДКА: АНАЛИЗ ПРЕДЛОЖЕНИЙ ==========
@@ -167,7 +183,6 @@ void MainWindow::generateHtmlReport()
             escapedText.replace(">", "&gt;");
 
             out << "<div class='word'>"
-                << "<span class='pos'>" << displayPos << "</span>"
                 << "<span class='text " << cssClass << "'>" << escapedText << "</span>"
                 << "</div>";
         }
@@ -175,6 +190,32 @@ void MainWindow::generateHtmlReport()
         out << "</div></div>";
     }
     out << "</div>";
+
+    // ========== ВКЛАДКА: ЧАСТОТНОСТЬ СЛОВ ==========
+    out << "<div id='WordFreq' class='tab-content'>";
+    out << "<h2>Частота употребления слов по ролям</h2>";
+    out << "<table style='width:100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;'>";
+    out << "<thead><tr style='background:#f8f9fa; border-bottom: 2px solid #dee2e6;'>"
+        << "<th style='padding:10px; text-align:left;'>Слово</th>"
+        << "<th style='padding:10px; text-align:left;'>Роль</th>"
+        << "<th style='padding:10px; text-align:center; width:80px;'>Кол-во</th>"
+        << "</tr></thead><tbody>";
+
+    QStringList words = wordRoleStats.keys();
+    std::sort(words.begin(), words.end());
+    for (const QString& w : words) {
+        const QMap<QString, int>& roles = wordRoleStats[w];
+        QStringList roleKeys = roles.keys();
+        std::sort(roleKeys.begin(), roleKeys.end());
+        for (const QString& role : roleKeys) {
+            out << "<tr style='border-bottom: 1px solid #ecf0f1;'>"
+                << "<td style='padding:8px; font-weight:500;'>" << w.toHtmlEscaped() << "</td>"
+                << "<td style='padding:8px;'>" << role << "</td>"
+                << "<td style='padding:8px; text-align:center; font-weight:bold;'>" << roles[role] << "</td>"
+                << "</tr>";
+        }
+    }
+    out << "</tbody></table></div>";
 
     // ========== ВКЛАДКА: СТАТИСТИКА ==========
     out << "<div id='Statistics' class='tab-content'>";
@@ -239,7 +280,23 @@ MainWindow::MainWindow(QWidget *parent)
     , ui(new Ui::MainWindow)
     , pythonProcess(nullptr)
 {
+    lastDirectory = QDir::homePath();
     ui->setupUi(this);
+
+    QWidget *tabFreq = new QWidget();
+    QVBoxLayout *layoutFreq = new QVBoxLayout(tabFreq);
+    layoutFreq->setContentsMargins(0, 0, 0, 0);
+
+    QTableWidget *tableFreq = new QTableWidget();
+    tableFreq->setObjectName("tableWordStats");
+    tableFreq->setColumnCount(3);
+    tableFreq->setHorizontalHeaderLabels({"Слово", "Роль", "Кол-во"});
+    tableFreq->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
+    tableFreq->setSelectionBehavior(QAbstractItemView::SelectRows);
+    layoutFreq->addWidget(tableFreq);
+
+    ui->tabWidget->addTab(tabFreq, "Частотность слов");
+
     setupPythonProcess();
     ui->btn_download->setEnabled(false);
 
@@ -585,15 +642,67 @@ void MainWindow::on_btn_search_clicked()
 
     runAnalysis(searchText);
 }
+bool MainWindow::isUtf8File(const QString& filePath)
+{
+    QFile file(filePath);
+    if (!file.open(QIODevice::ReadOnly)) return false;
+    QByteArray data = file.readAll();
+    file.close();
+
+    if (data.isEmpty()) return true; // Пустой файл считаем допустимым
+
+    // Побайтовая валидация UTF-8
+    const char* ptr = data.constData();
+    int len = data.length();
+    for (int i = 0; i < len; ) {
+        unsigned char c = ptr[i];
+        int extraBytes = 0;
+
+        if (c < 0x80) {          // ASCII символ (0xxxxxxx)
+            extraBytes = 0;
+        } else if ((c & 0xE0) == 0xC0) { // 2 байта (110xxxxx)
+            extraBytes = 1;
+        } else if ((c & 0xF0) == 0xE0) { // 3 байта (1110xxxx)
+            extraBytes = 2;
+        } else if ((c & 0xF8) == 0xF0) { // 4 байта (11110xxx)
+            extraBytes = 3;
+        } else {
+            return false; // Недопустимый стартовый байт
+        }
+
+        // Проверяем байты продолжения (должны быть 10xxxxxx)
+        for (int j = 0; j < extraBytes; j++) {
+            i++;
+            if (i >= len || (ptr[i] & 0xC0) != 0x80) return false;
+        }
+        i++;
+    }
+    return true;
+}
 
 void MainWindow::on_btn_upload_clicked()
 {
+    // 1. Предупреждение пользователю ПЕРЕД открытием диалога
+    QMessageBox::information(this, "Требование к файлу",
+                             "Внимание!\n\n"
+                             "Программа работает только с текстовыми файлами в кодировке UTF-8.\n"
+                             "Убедитесь, что ваш файл сохранен именно в этой кодировке.\n\n",
+                             QMessageBox::Ok);
+
+    // 2. Открываем диалог выбора файла
     QString filePath = QFileDialog::getOpenFileName(this,
                                                     "Выберите текстовый файл",
-                                                    QDir::homePath(),
+                                                    lastDirectory, // Если вы уже добавили lastDirectory, используйте её. Иначе оставьте QDir::homePath()
                                                     "Текстовые файлы (*.txt)");
 
-    if (filePath.isEmpty()) {
+    if (filePath.isEmpty()) return;
+
+    // 3. Строгая проверка кодировки
+    if (!isUtf8File(filePath)) {
+        QMessageBox::critical(this, "Ошибка кодировки",
+                              "Выбранный файл не соответствует формату UTF-8 или поврежден.\n"
+                              "Пожалуйста, сохраните файл в кодировке UTF-8 и попробуйте снова.",
+                              QMessageBox::Ok);
         return;
     }
 
@@ -637,6 +746,7 @@ void MainWindow::on_btn_upload_clicked()
     // All checks passed - now load the text into the UI
     ui->textEdit->setPlainText(content);
     currentFileName = QFileInfo(filePath).fileName();
+    lastDirectory = QFileInfo(filePath).absolutePath();
     statusBar()->showMessage("Загружен файл: " + currentFileName, 3000);
 
     // Ask user if they want to run analysis
@@ -912,8 +1022,10 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
         statusBar()->showMessage("Синтаксический анализ успешно завершен!", 3000);
         if (!sentenceTexts.isEmpty()) {
             calculateStatistics();
+            calculateWordRoleStats();
             updateStatisticsDisplay();
             updateDisplay();
+            updateWordRoleDisplay();
             ui->btn_download->setEnabled(true);
         } else {
             showPlaceholderInResults();
@@ -969,10 +1081,9 @@ void MainWindow::updateDisplay()
             for (const WordInfo& word : words) {
                 if (shouldShowWord(word)) {
                     hasWords = true;
-                    QString displayText = QString("%1 — %2 (%3)")
+                    QString displayText = QString("%1 — %2")
                                               .arg(word.text)
-                                              .arg(word.sentence)
-                                              .arg(word.posRussian);
+                                              .arg(word.sentence);
 
                     QTreeWidgetItem* wordItem = new QTreeWidgetItem(sentItem);
                     wordItem->setText(0, displayText);
@@ -1040,3 +1151,41 @@ void MainWindow::on_btn_download_clicked() {
     }
     generateHtmlReport();
 }
+
+    void MainWindow::calculateWordRoleStats()
+    {
+        wordRoleStats.clear();
+        for (auto it = wordsBySentence.begin(); it != wordsBySentence.end(); ++it) {
+            for (const WordInfo& word : it.value()) {
+                if (word.speech == "PUNCT" || word.speech == "SPACE") continue;
+                QString w = word.text.toLower(); // Группируем без учета регистра
+                wordRoleStats[w][word.sentence]++;
+            }
+        }
+    }
+
+    void MainWindow::updateWordRoleDisplay()
+    {
+        QTableWidget *table = findChild<QTableWidget*>("tableWordStats");
+        if (!table) return;
+
+        table->setRowCount(0);
+        int row = 0;
+
+        QStringList words = wordRoleStats.keys();
+        std::sort(words.begin(), words.end());
+
+        for (const QString& w : words) {
+            const QMap<QString, int>& roles = wordRoleStats[w];
+            QStringList roleKeys = roles.keys();
+            std::sort(roleKeys.begin(), roleKeys.end());
+
+            for (const QString& role : roleKeys) {
+                table->insertRow(row);
+                table->setItem(row, 0, new QTableWidgetItem(w));
+                table->setItem(row, 1, new QTableWidgetItem(role));
+                table->setItem(row, 2, new QTableWidgetItem(QString::number(roles[role])));
+                row++;
+            }
+        }
+    }
