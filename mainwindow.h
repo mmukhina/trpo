@@ -68,9 +68,14 @@ private:
     QProcess *pythonProcess;
     QString currentTempFile;
     QString currentFileName;
+    QString lastDirectory;
     QMap<int, QString> sentenceTexts;
     QMap<int, QList<WordInfo>> wordsBySentence;
+    QMap<QString, QMap<QString, int>> wordRoleStats;
     Statistics stats;
+
+    void calculateWordRoleStats();
+    void updateWordRoleDisplay();
 
     void setupPythonProcess();
     void updateAllCheckboxState();
@@ -89,6 +94,7 @@ private:
     void showPlaceholderStatistics();
     void showPlaceholderInResults();
     void showResultsPage();
+    bool isUtf8File(const QString& filePath);
 };
 
 #endif // MAINWINDOW_H
