@@ -7,13 +7,12 @@
     <x>0</x>
     <y>0</y>
     <width>997</width>
-    <height>500</height>
+    <height>803</height>
    </rect>
   </property>
   <property name="windowTitle">
    <string>Синтаксический анализатор</string>
   </property>
-  <!-- Force light theme colors - never change -->
   <property name="styleSheet">
    <string notr="true">
     /* Force light background - override dark mode */
@@ -93,7 +92,6 @@
     }
     QPushButton#btn_download:disabled {
         background-color: #bdc3c7;
-        color: #95a5a6;
     }
     QPushButton#btn_download:hover:enabled {
         background-color: #219a52;
@@ -142,7 +140,7 @@
         border-color: #3498db;
     }
     
-    /* Tab widget styling */
+    /* Tab widget styling - UNIFIED */
     QTabWidget::pane {
         background-color: #ffffff;
         border: 1px solid #d0d0d0;
@@ -150,13 +148,14 @@
     }
     QTabBar::tab {
         background-color: #ecf0f1;
-        padding: 6px 16px;
+        padding: 8px 20px;
         margin-right: 2px;
         border-top-left-radius: 6px;
         border-top-right-radius: 6px;
         font-size: 12px;
         font-weight: 500;
         color: #2c3e50;
+        min-width: 120px;
     }
     QTabBar::tab:selected {
         background-color: #ffffff;
@@ -167,34 +166,44 @@
         background-color: #dfe6e9;
     }
     
-    /* Tree widget styling */
-    QTreeWidget {
+    /* UNIFIED Tree and Table Widget Styling */
+    QTreeWidget, QTableWidget {
         background-color: #ffffff;
         color: #495057;
         border: none;
         font-size: 12px;
         outline: 0;
+        alternate-background-color: #f8f9fa;
     }
-    QTreeWidget::item {
-        padding: 5px;
+    QTreeWidget::item, QTableWidget::item {
+        padding: 8px;
         border-bottom: 1px solid #ecf0f1;
-        background-color: #ffffff;
+        color: #495057;
     }
-    QTreeWidget::item:hover {
+    QTreeWidget::item:hover, QTableWidget::item:hover {
         background-color: #f0f4f8;
     }
-    QTreeWidget::item:selected {
+    QTreeWidget::item:selected, QTableWidget::item:selected {
         background-color: #3498db;
         color: #ffffff;
     }
+    QTreeWidget::item:alternate, QTableWidget::item:alternate {
+        background-color: #f8f9fa;
+    }
+    
+    /* UNIFIED Header Styling */
     QHeaderView::section {
         background-color: #f8fafc;
-        padding: 6px;
+        padding: 10px;
         border: none;
-        border-bottom: 1px solid #d0d0d0;
-        font-weight: 500;
+        border-bottom: 2px solid #3498db;
+        font-weight: bold;
         font-size: 12px;
         color: #2c3e50;
+    }
+    QTableCornerButton::section {
+        background-color: #f8fafc;
+        border: none;
     }
     
     /* Statistics container */
@@ -224,7 +233,7 @@
     QPushButton#statButton:hover {
         background-color: #dee2e6;
     }
-    QPushButton#statButton[expanded="true"] {
+    QPushButton#statButton[expanded=&quot;true&quot;] {
         background-color: #3498db;
         color: white;
         border-color: #3498db;
@@ -272,7 +281,8 @@
         text-align: center;
     }
     
-    QLabel#placeholderLabel {
+    /* UNIFIED Placeholder styling */
+    QLabel#placeholderLabel, QLabel#wordFreqPlaceholderLabel {
         color: #6c757d;
         font-size: 14px;
         font-style: italic;
@@ -339,6 +349,15 @@
         padding: 3px 6px;
         font-size: 11px;
     }
+    
+    /* QTextBrowser styling for statistics details */
+    QTextBrowser {
+        background-color: transparent;
+        border: none;
+        font-size: 12px;
+        font-family: 'Segoe UI', Arial, sans-serif;
+        color: #495057;
+    }
    </string>
   </property>
   <widget class="QWidget" name="centralwidget">
@@ -395,11 +414,11 @@
              <height>16777215</height>
             </size>
            </property>
+           <property name="lineWrapMode">
+            <enum>QTextEdit::LineWrapMode::WidgetWidth</enum>
+           </property>
            <property name="placeholderText">
             <string>Введите текст для анализа...</string>
-           </property>
-           <property name="lineWrapMode">
-            <enum>QTextEdit::WidgetWidth</enum>
            </property>
           </widget>
          </item>
@@ -583,8 +602,14 @@
     </item>
     <item>
      <widget class="QTabWidget" name="tabWidget">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
       <property name="currentIndex">
        <number>0</number>
+      </property>
+      <property name="movable">
+       <bool>false</bool>
       </property>
       <widget class="QWidget" name="tab_analysis">
        <attribute name="title">
@@ -639,15 +664,6 @@
                </property>
                <item>
                 <widget class="QLabel" name="placeholderLabel">
-                 <property name="styleSheet">
-                  <string notr="true">QLabel#placeholderLabel {
-    color: #6c757d;
-    font-size: 14px;
-    font-style: italic;
-    padding: 40px;
-    text-align: center;
-}</string>
-                 </property>
                  <property name="text">
                   <string>Введите текст для анализа</string>
                  </property>
@@ -678,7 +694,7 @@
             <item>
              <widget class="QTreeWidget" name="treeWidget">
               <property name="alternatingRowColors">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="indentation">
                <number>20</number>
@@ -768,6 +784,126 @@
             <number>0</number>
            </property>
           </layout>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="tab_word_frequency">
+       <attribute name="title">
+        <string>Частотность слов</string>
+       </attribute>
+       <layout class="QVBoxLayout" name="verticalLayout_4">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="QStackedWidget" name="stackedWordFreq">
+          <property name="currentIndex">
+           <number>0</number>
+          </property>
+          <widget class="QWidget" name="wordFreqPlaceholderPage">
+           <layout class="QVBoxLayout" name="wordFreqPlaceholderLayout">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QWidget" name="wordFreqPlaceholderContainer" native="true">
+              <layout class="QVBoxLayout" name="wordFreqPlaceholderContainerLayout">
+               <property name="leftMargin">
+                <number>0</number>
+               </property>
+               <property name="topMargin">
+                <number>0</number>
+               </property>
+               <property name="rightMargin">
+                <number>0</number>
+               </property>
+               <property name="bottomMargin">
+                <number>0</number>
+               </property>
+               <item>
+                <widget class="QLabel" name="wordFreqPlaceholderLabel">
+                 <property name="text">
+                  <string>Введите текст для анализа</string>
+                 </property>
+                 <property name="alignment">
+                  <set>Qt::AlignmentFlag::AlignCenter</set>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="wordFreqResultsPage">
+           <layout class="QVBoxLayout" name="wordFreqResultsLayout">
+            <property name="leftMargin">
+             <number>0</number>
+            </property>
+            <property name="topMargin">
+             <number>0</number>
+            </property>
+            <property name="rightMargin">
+             <number>0</number>
+            </property>
+            <property name="bottomMargin">
+             <number>0</number>
+            </property>
+            <item>
+             <widget class="QTableWidget" name="tableWordStats">
+              <property name="alternatingRowColors">
+               <bool>true</bool>
+              </property>
+              <property name="selectionBehavior">
+               <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+              </property>
+              <attribute name="horizontalHeaderVisible">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="horizontalHeaderStretchLastSection">
+               <bool>true</bool>
+              </attribute>
+              <attribute name="verticalHeaderVisible">
+               <bool>false</bool>
+              </attribute>
+              <column>
+               <property name="text">
+                <string>Слово</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Роль</string>
+               </property>
+              </column>
+              <column>
+               <property name="text">
+                <string>Количество</string>
+               </property>
+              </column>
+             </widget>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>

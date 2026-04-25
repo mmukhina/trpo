@@ -22,6 +22,7 @@
 #include <QtWidgets/QStackedWidget>
 #include <QtWidgets/QStatusBar>
 #include <QtWidgets/QTabWidget>
+#include <QtWidgets/QTableWidget>
 #include <QtWidgets/QTextEdit>
 #include <QtWidgets/QTreeWidget>
 #include <QtWidgets/QVBoxLayout>
@@ -70,13 +71,24 @@ public:
     QVBoxLayout *verticalLayout_3;
     QWidget *statisticsContainer;
     QVBoxLayout *statisticsContainerLayout;
+    QWidget *tab_word_frequency;
+    QVBoxLayout *verticalLayout_4;
+    QStackedWidget *stackedWordFreq;
+    QWidget *wordFreqPlaceholderPage;
+    QVBoxLayout *wordFreqPlaceholderLayout;
+    QWidget *wordFreqPlaceholderContainer;
+    QVBoxLayout *wordFreqPlaceholderContainerLayout;
+    QLabel *wordFreqPlaceholderLabel;
+    QWidget *wordFreqResultsPage;
+    QVBoxLayout *wordFreqResultsLayout;
+    QTableWidget *tableWordStats;
     QStatusBar *statusbar;
 
     void setupUi(QMainWindow *MainWindow)
     {
         if (MainWindow->objectName().isEmpty())
             MainWindow->setObjectName("MainWindow");
-        MainWindow->resize(997, 500);
+        MainWindow->resize(997, 803);
         MainWindow->setStyleSheet(QString::fromUtf8("\n"
 "    /* Force light background - override dark mode */\n"
 "    QMainWindow, QWidget#centralwidget {\n"
@@ -157,7 +169,6 @@ public:
 "    }\n"
 "    QPushButton#btn_download:disabled {\n"
 "        background-color: #bdc3c7;\n"
-"        color: #95a5a6;\n"
 "    }\n"
 "    QPushButton#btn_download:hover:enabled {\n"
 "        background-color: #219a52;\n"
@@ -190,9 +201,9 @@ public:
 "        border: 1px solid #bdc3c7;\n"
 "        background-color: #ffffff;\n"
 "    }\n"
-"    QCheckBox::indicator:checked {"
-                        "\n"
-"        background-color: #3498db;\n"
+"    QCheckBox::indicator:checked {\n"
+"        background-colo"
+                        "r: #3498db;\n"
 "        border-color: #3498db;\n"
 "    }\n"
 "    QCheckBox::indicator:hover {\n"
@@ -207,7 +218,7 @@ public:
 "        border-color: #3498db;\n"
 "    }\n"
 "    \n"
-"    /* Tab widget styling */\n"
+"    /* Tab widget styling - UNIFIED */\n"
 "    QTabWidget::pane {\n"
 "        background-color: #ffffff;\n"
 "        border: 1px solid #d0d0d0;\n"
@@ -215,59 +226,70 @@ public:
 "    }\n"
 "    QTabBar::tab {\n"
 "        background-color: #ecf0f1;\n"
-"        padding: 6px 16px;\n"
+"        padding: 8px 20px;\n"
 "        margin-right: 2px;\n"
 "        border-top-left-radius: 6px;\n"
 "        border-top-right-radius: 6px;\n"
 "        font-size: 12px;\n"
 "        font-weight: 500;\n"
 "        color: #2c3e50;\n"
+"        min-width: 120px;\n"
 "    }\n"
 "    QTabBar::tab:selected {\n"
 "        background-color: #ffffff;\n"
 "        color: #3498db;\n"
 "        border-bottom: 2px solid #3498db;\n"
 "    }\n"
-"    QTabBar::tab:hov"
-                        "er:!selected {\n"
+"    QTab"
+                        "Bar::tab:hover:!selected {\n"
 "        background-color: #dfe6e9;\n"
 "    }\n"
 "    \n"
-"    /* Tree widget styling */\n"
-"    QTreeWidget {\n"
+"    /* UNIFIED Tree and Table Widget Styling */\n"
+"    QTreeWidget, QTableWidget {\n"
 "        background-color: #ffffff;\n"
 "        color: #495057;\n"
 "        border: none;\n"
 "        font-size: 12px;\n"
 "        outline: 0;\n"
+"        alternate-background-color: #f8f9fa;\n"
 "    }\n"
-"    QTreeWidget::item {\n"
-"        padding: 5px;\n"
+"    QTreeWidget::item, QTableWidget::item {\n"
+"        padding: 8px;\n"
 "        border-bottom: 1px solid #ecf0f1;\n"
-"        background-color: #ffffff;\n"
+"        color: #495057;\n"
 "    }\n"
-"    QTreeWidget::item:hover {\n"
+"    QTreeWidget::item:hover, QTableWidget::item:hover {\n"
 "        background-color: #f0f4f8;\n"
 "    }\n"
-"    QTreeWidget::item:selected {\n"
+"    QTreeWidget::item:selected, QTableWidget::item:selected {\n"
 "        background-color: #3498db;\n"
 "        color: #ffffff;\n"
 "    }\n"
+"    QTreeWidget::item:alternate, QTableWidget::item:alternate {\n"
+"        background-color: #f8f9fa;\n"
+"    }\n"
+"    \n"
+"    /* UNIFIED Header Styling */\n"
 "    QHeaderView::section {\n"
 "        background-color: #f8fafc;\n"
-"        padding: 6px;\n"
+""
+                        "        padding: 10px;\n"
 "        border: none;\n"
-"        border-bottom: 1px solid #d0d0d0;\n"
-"        font-weight: 500;\n"
+"        border-bottom: 2px solid #3498db;\n"
+"        font-weight: bold;\n"
 "        font-size: 12px;\n"
 "        color: #2c3e50;\n"
+"    }\n"
+"    QTableCornerButton::section {\n"
+"        background-color: #f8fafc;\n"
+"        border: none;\n"
 "    }\n"
 "    \n"
 "    /* Statistics container */\n"
 "    QWidget#statisticsContainer {\n"
 "        background-color: #ffffff;\n"
-"    "
-                        "    min-height: 520px;\n"
+"        min-height: 520px;\n"
 "        max-height: 520px;\n"
 "    }\n"
 "    \n"
@@ -288,7 +310,8 @@ public:
 "        color: #495057;\n"
 "        min-width: 100px;\n"
 "    }\n"
-"    QPushButton#statButton:hover {\n"
+"    QPus"
+                        "hButton#statButton:hover {\n"
 "        background-color: #dee2e6;\n"
 "    }\n"
 "    QPushButton#statButton[expanded=\"true\"] {\n"
@@ -302,8 +325,7 @@ public:
 "        border: none;\n"
 "        background-color: white;\n"
 "    }\n"
-"    QScrollArea#contentScrollArea"
-                        " QScrollBar:vertical {\n"
+"    QScrollArea#contentScrollArea QScrollBar:vertical {\n"
 "        border: none;\n"
 "        background: #f0f0f0;\n"
 "        width: 8px;\n"
@@ -321,7 +343,8 @@ public:
 "        background: #2980b9;\n"
 "    }\n"
 "    \n"
-"    QLabel#sentenceLabel {\n"
+"    QLabel#sentenceL"
+                        "abel {\n"
 "        color: #2c3e50;\n"
 "        font-size: 12px;\n"
 "        padding: 6px 8px;\n"
@@ -337,11 +360,11 @@ public:
 "        color: #6c757d;\n"
 "        font-style: italic;\n"
 "        padding: 20px;\n"
-"        text-align"
-                        ": center;\n"
+"        text-align: center;\n"
 "    }\n"
 "    \n"
-"    QLabel#placeholderLabel {\n"
+"    /* UNIFIED Placeholder styling */\n"
+"    QLabel#placeholderLabel, QLabel#wordFreqPlaceholderLabel {\n"
 "        color: #6c757d;\n"
 "        font-size: 14px;\n"
 "        font-style: italic;\n"
@@ -358,7 +381,8 @@ public:
 "        margin: 0px;\n"
 "    }\n"
 "    QScrollBar::handle:vertical {\n"
-"        background: #c0c0c0;\n"
+""
+                        "        background: #c0c0c0;\n"
 "        min-height: 30px;\n"
 "        border-radius: 4px;\n"
 "    }\n"
@@ -375,8 +399,7 @@ public:
 "        background: none;\n"
 "    }\n"
 "    \n"
-"   "
-                        " /* Horizontal scrollbar styling */\n"
+"    /* Horizontal scrollbar styling */\n"
 "    QScrollBar:horizontal {\n"
 "        border: none;\n"
 "        background: #f0f0f0;\n"
@@ -393,7 +416,8 @@ public:
 "        background: #3498db;\n"
 "    }\n"
 "    QScrollBar::handle:horizontal:pressed {\n"
-"        background: #2980b9;\n"
+"        bac"
+                        "kground: #2980b9;\n"
 "    }\n"
 "    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {\n"
 "        width: 0px;\n"
@@ -408,6 +432,15 @@ public:
 "        color: #ffffff;\n"
 "        padding: 3px 6px;\n"
 "        font-size: 11px;\n"
+"    }\n"
+"    \n"
+"    /* QTextBrowser styling for statistics details */\n"
+"    QTextBrowser {\n"
+"        background-color: transparent;\n"
+"        border: none;\n"
+"        font-size: 12px;\n"
+"        font-family: 'Segoe UI', Arial, sans-serif;\n"
+"        color: #495057;\n"
 "    }\n"
 "   "));
         centralwidget = new QWidget(MainWindow);
@@ -429,7 +462,7 @@ public:
         textEdit->setObjectName("textEdit");
         textEdit->setMinimumSize(QSize(0, 100));
         textEdit->setMaximumSize(QSize(16777215, 16777215));
-        textEdit->setLineWrapMode(QTextEdit::WidgetWidth);
+        textEdit->setLineWrapMode(QTextEdit::LineWrapMode::WidgetWidth);
 
         inputLayout->addWidget(textEdit);
 
@@ -530,6 +563,8 @@ public:
 
         tabWidget = new QTabWidget(centralwidget);
         tabWidget->setObjectName("tabWidget");
+        tabWidget->setStyleSheet(QString::fromUtf8(""));
+        tabWidget->setMovable(false);
         tab_analysis = new QWidget();
         tab_analysis->setObjectName("tab_analysis");
         verticalLayout_2 = new QVBoxLayout(tab_analysis);
@@ -549,13 +584,6 @@ public:
         placeholderContainerLayout->setContentsMargins(0, 0, 0, 0);
         placeholderLabel = new QLabel(placeholderContainer);
         placeholderLabel->setObjectName("placeholderLabel");
-        placeholderLabel->setStyleSheet(QString::fromUtf8("QLabel#placeholderLabel {\n"
-"    color: #6c757d;\n"
-"    font-size: 14px;\n"
-"    font-style: italic;\n"
-"    padding: 40px;\n"
-"    text-align: center;\n"
-"}"));
         placeholderLabel->setAlignment(Qt::AlignmentFlag::AlignCenter);
 
         placeholderContainerLayout->addWidget(placeholderLabel);
@@ -577,7 +605,7 @@ public:
         __qtreewidgetitem->setFont(0, font);
         treeWidget->setHeaderItem(__qtreewidgetitem);
         treeWidget->setObjectName("treeWidget");
-        treeWidget->setAlternatingRowColors(false);
+        treeWidget->setAlternatingRowColors(true);
         treeWidget->setIndentation(20);
         treeWidget->setHeaderHidden(false);
         treeWidget->setExpandsOnDoubleClick(true);
@@ -610,6 +638,61 @@ public:
         verticalLayout_3->addWidget(statisticsContainer);
 
         tabWidget->addTab(tab_statistics, QString());
+        tab_word_frequency = new QWidget();
+        tab_word_frequency->setObjectName("tab_word_frequency");
+        verticalLayout_4 = new QVBoxLayout(tab_word_frequency);
+        verticalLayout_4->setObjectName("verticalLayout_4");
+        verticalLayout_4->setContentsMargins(0, 0, 0, 0);
+        stackedWordFreq = new QStackedWidget(tab_word_frequency);
+        stackedWordFreq->setObjectName("stackedWordFreq");
+        wordFreqPlaceholderPage = new QWidget();
+        wordFreqPlaceholderPage->setObjectName("wordFreqPlaceholderPage");
+        wordFreqPlaceholderLayout = new QVBoxLayout(wordFreqPlaceholderPage);
+        wordFreqPlaceholderLayout->setObjectName("wordFreqPlaceholderLayout");
+        wordFreqPlaceholderLayout->setContentsMargins(0, 0, 0, 0);
+        wordFreqPlaceholderContainer = new QWidget(wordFreqPlaceholderPage);
+        wordFreqPlaceholderContainer->setObjectName("wordFreqPlaceholderContainer");
+        wordFreqPlaceholderContainerLayout = new QVBoxLayout(wordFreqPlaceholderContainer);
+        wordFreqPlaceholderContainerLayout->setObjectName("wordFreqPlaceholderContainerLayout");
+        wordFreqPlaceholderContainerLayout->setContentsMargins(0, 0, 0, 0);
+        wordFreqPlaceholderLabel = new QLabel(wordFreqPlaceholderContainer);
+        wordFreqPlaceholderLabel->setObjectName("wordFreqPlaceholderLabel");
+        wordFreqPlaceholderLabel->setAlignment(Qt::AlignmentFlag::AlignCenter);
+
+        wordFreqPlaceholderContainerLayout->addWidget(wordFreqPlaceholderLabel);
+
+
+        wordFreqPlaceholderLayout->addWidget(wordFreqPlaceholderContainer);
+
+        stackedWordFreq->addWidget(wordFreqPlaceholderPage);
+        wordFreqResultsPage = new QWidget();
+        wordFreqResultsPage->setObjectName("wordFreqResultsPage");
+        wordFreqResultsLayout = new QVBoxLayout(wordFreqResultsPage);
+        wordFreqResultsLayout->setObjectName("wordFreqResultsLayout");
+        wordFreqResultsLayout->setContentsMargins(0, 0, 0, 0);
+        tableWordStats = new QTableWidget(wordFreqResultsPage);
+        if (tableWordStats->columnCount() < 3)
+            tableWordStats->setColumnCount(3);
+        QTableWidgetItem *__qtablewidgetitem = new QTableWidgetItem();
+        tableWordStats->setHorizontalHeaderItem(0, __qtablewidgetitem);
+        QTableWidgetItem *__qtablewidgetitem1 = new QTableWidgetItem();
+        tableWordStats->setHorizontalHeaderItem(1, __qtablewidgetitem1);
+        QTableWidgetItem *__qtablewidgetitem2 = new QTableWidgetItem();
+        tableWordStats->setHorizontalHeaderItem(2, __qtablewidgetitem2);
+        tableWordStats->setObjectName("tableWordStats");
+        tableWordStats->setAlternatingRowColors(true);
+        tableWordStats->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+        tableWordStats->horizontalHeader()->setVisible(true);
+        tableWordStats->horizontalHeader()->setStretchLastSection(true);
+        tableWordStats->verticalHeader()->setVisible(false);
+
+        wordFreqResultsLayout->addWidget(tableWordStats);
+
+        stackedWordFreq->addWidget(wordFreqResultsPage);
+
+        verticalLayout_4->addWidget(stackedWordFreq);
+
+        tabWidget->addTab(tab_word_frequency, QString());
 
         mainLayout->addWidget(tabWidget);
 
@@ -622,6 +705,7 @@ public:
 
         tabWidget->setCurrentIndex(0);
         stackedResults->setCurrentIndex(1);
+        stackedWordFreq->setCurrentIndex(0);
 
 
         QMetaObject::connectSlotsByName(MainWindow);
@@ -647,6 +731,14 @@ public:
         ___qtreewidgetitem->setText(0, QCoreApplication::translate("MainWindow", "\320\240\320\265\320\267\321\203\320\273\321\214\321\202\320\260\321\202\321\213 \321\201\320\270\320\275\321\202\320\260\320\272\321\201\320\270\321\207\320\265\321\201\320\272\320\276\320\263\320\276 \320\260\320\275\320\260\320\273\320\270\320\267\320\260", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_analysis), QCoreApplication::translate("MainWindow", "\320\240\320\265\320\267\321\203\320\273\321\214\321\202\320\260\321\202\321\213 \320\260\320\275\320\260\320\273\320\270\320\267\320\260", nullptr));
         tabWidget->setTabText(tabWidget->indexOf(tab_statistics), QCoreApplication::translate("MainWindow", "\320\241\321\202\320\260\321\202\320\270\321\201\321\202\320\270\320\272\320\260", nullptr));
+        wordFreqPlaceholderLabel->setText(QCoreApplication::translate("MainWindow", "\320\222\320\262\320\265\320\264\320\270\321\202\320\265 \321\202\320\265\320\272\321\201\321\202 \320\264\320\273\321\217 \320\260\320\275\320\260\320\273\320\270\320\267\320\260", nullptr));
+        QTableWidgetItem *___qtablewidgetitem = tableWordStats->horizontalHeaderItem(0);
+        ___qtablewidgetitem->setText(QCoreApplication::translate("MainWindow", "\320\241\320\273\320\276\320\262\320\276", nullptr));
+        QTableWidgetItem *___qtablewidgetitem1 = tableWordStats->horizontalHeaderItem(1);
+        ___qtablewidgetitem1->setText(QCoreApplication::translate("MainWindow", "\320\240\320\276\320\273\321\214", nullptr));
+        QTableWidgetItem *___qtablewidgetitem2 = tableWordStats->horizontalHeaderItem(2);
+        ___qtablewidgetitem2->setText(QCoreApplication::translate("MainWindow", "\320\232\320\276\320\273\320\270\321\207\320\265\321\201\321\202\320\262\320\276", nullptr));
+        tabWidget->setTabText(tabWidget->indexOf(tab_word_frequency), QCoreApplication::translate("MainWindow", "\320\247\320\260\321\201\321\202\320\276\321\202\320\275\320\276\321\201\321\202\321\214 \321\201\320\273\320\276\320\262", nullptr));
     } // retranslateUi
 
 };

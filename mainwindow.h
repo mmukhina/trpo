@@ -89,12 +89,17 @@ private:
     bool callNatasha(const QString path);
     bool hasAnyLetter(const QString& text);
     bool hasOnlyNumbers(const QString& text);
-    void calculateStatistics();
-    void updateStatisticsDisplay();
+    void calculateStatistics();  // существующий метод
+    void calculateStatisticsWithFilter();  // новый метод
+    void updateStatisticsDisplay();  // существующий метод
+    void updateStatisticsDisplayWithFilter();  // новый метод;
     void showPlaceholderStatistics();
     void showPlaceholderInResults();
     void showResultsPage();
+    void showPlaceholderWordFreq();
+    void showWordFreqResults();
     bool isUtf8File(const QString& filePath);
+    bool isAnyFilterSelected();
 };
 
 #endif // MAINWINDOW_H
