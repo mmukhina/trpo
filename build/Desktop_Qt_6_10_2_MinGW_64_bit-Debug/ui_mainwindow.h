@@ -718,10 +718,10 @@ public:
         QTableWidgetItem *__qtablewidgetitem2 = new QTableWidgetItem();
         tableWordStats->setHorizontalHeaderItem(2, __qtablewidgetitem2);
         tableWordStats->setObjectName("tableWordStats");
-        tableWordStats->setAlternatingRowColors(true);
-        tableWordStats->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
         tableWordStats->setEditTriggers(QAbstractItemView::EditTrigger::NoEditTriggers);
+        tableWordStats->setAlternatingRowColors(true);
         tableWordStats->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
+        tableWordStats->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
         tableWordStats->horizontalHeader()->setVisible(true);
         tableWordStats->horizontalHeader()->setStretchLastSection(true);
         tableWordStats->verticalHeader()->setVisible(false);
@@ -743,7 +743,7 @@ public:
 
         retranslateUi(MainWindow);
 
-        tabWidget->setCurrentIndex(2);
+        tabWidget->setCurrentIndex(0);
         stackedResults->setCurrentIndex(1);
         stackedWordFreq->setCurrentIndex(0);
 
