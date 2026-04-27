@@ -62,6 +62,7 @@ private slots:
     void handlePythonOutput();
     void handlePythonError();
     void handlePythonFinished(int exitCode, QProcess::ExitStatus exitStatus);
+    void onTextEdited();
 
 private:
     Ui::MainWindow *ui;
@@ -73,6 +74,7 @@ private:
     QMap<int, QList<WordInfo>> wordsBySentence;
     QMap<QString, QMap<QString, int>> wordRoleStats;
     Statistics stats;
+    QString analyzedText;
 
     void calculateWordRoleStats();
     void updateWordRoleDisplay();
@@ -100,6 +102,8 @@ private:
     void showWordFreqResults();
     bool isUtf8File(const QString& filePath);
     bool isAnyFilterSelected();
+    void refreshAllDisplay();
+    void updateButtonsState();
 };
 
 #endif // MAINWINDOW_H

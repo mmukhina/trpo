@@ -163,10 +163,10 @@
         border-bottom: 2px solid #3498db;
     }
     QTabBar::tab:hover:!selected {
-        background-color: #dfe6e9;
+        background-color: #ecf0f1;
     }
     
-    /* UNIFIED Tree and Table Widget Styling */
+    /* UNIFIED Tree and Table Widget Styling - NO HIGHLIGHTING */
     QTreeWidget, QTableWidget {
         background-color: #ffffff;
         color: #495057;
@@ -174,21 +174,56 @@
         font-size: 12px;
         outline: 0;
         alternate-background-color: #f8f9fa;
+        selection-background-color: transparent;
+        selection-color: #495057;
     }
     QTreeWidget::item, QTableWidget::item {
         padding: 8px;
         border-bottom: 1px solid #ecf0f1;
         color: #495057;
     }
-    QTreeWidget::item:hover, QTableWidget::item:hover {
-        background-color: #f0f4f8;
+    
+    /* Отключаем выделение и изменение цвета при наведении */
+    QTreeWidget::item:hover,
+    QTableWidget::item:hover {
+        background-color: transparent;
     }
-    QTreeWidget::item:selected, QTableWidget::item:selected {
-        background-color: #3498db;
-        color: #ffffff;
+    
+    QTreeWidget::item:selected,
+    QTableWidget::item:selected {
+        background-color: transparent;
+        color: #495057;
     }
-    QTreeWidget::item:alternate, QTableWidget::item:alternate {
-        background-color: #f8f9fa;
+    
+    QTreeWidget::item:selected:hover,
+    QTableWidget::item:selected:hover {
+        background-color: transparent;
+    }
+    
+    QTreeWidget::item:focus,
+    QTableWidget::item:focus {
+        outline: none;
+        background-color: transparent;
+        color: #495057;
+    }
+    
+    QTableWidget::item:hover:!selected,
+    QTreeWidget::item:hover:!selected {
+        background-color: transparent;
+    }
+    
+    QTreeWidget::branch:hover {
+        color: #2980b9;
+    }
+    
+    QTreeWidget {
+        selection-background-color: transparent;
+        selection-color: #495057;
+    }
+    
+    QTableWidget {
+        selection-background-color: transparent;
+        selection-color: #495057;
     }
     
     /* UNIFIED Header Styling */
@@ -201,6 +236,15 @@
         font-size: 12px;
         color: #2c3e50;
     }
+    
+    QHeaderView::section:hover {
+        background-color: #f8fafc;
+    }
+    
+    QHeaderView::section:pressed {
+        background-color: #f8fafc;
+    }
+    
     QTableCornerButton::section {
         background-color: #f8fafc;
         border: none;
@@ -233,7 +277,7 @@
     QPushButton#statButton:hover {
         background-color: #dee2e6;
     }
-    QPushButton#statButton[expanded=&quot;true&quot;] {
+    QPushButton#statButton[expanded="true"] {
         background-color: #3498db;
         color: white;
         border-color: #3498db;
@@ -606,7 +650,7 @@
        <string notr="true"/>
       </property>
       <property name="currentIndex">
-       <number>0</number>
+       <number>2</number>
       </property>
       <property name="movable">
        <bool>false</bool>
@@ -700,32 +744,17 @@
                <number>20</number>
               </property>
               <property name="headerHidden">
-               <bool>false</bool>
+               <bool>true</bool>
               </property>
               <property name="expandsOnDoubleClick">
                <bool>true</bool>
               </property>
               <attribute name="headerVisible">
-               <bool>true</bool>
-              </attribute>
-              <attribute name="headerMinimumSectionSize">
-               <number>150</number>
-              </attribute>
-              <attribute name="headerDefaultSectionSize">
-               <number>300</number>
-              </attribute>
-              <attribute name="headerStretchLastSection">
-               <bool>true</bool>
+               <bool>false</bool>
               </attribute>
               <column>
                <property name="text">
                 <string>Результаты синтаксического анализа</string>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                 <bold>true</bold>
-                </font>
                </property>
               </column>
              </widget>
@@ -841,6 +870,9 @@
                </property>
                <item>
                 <widget class="QLabel" name="wordFreqPlaceholderLabel">
+                 <property name="enabled">
+                  <bool>false</bool>
+                 </property>
                  <property name="text">
                   <string>Введите текст для анализа</string>
                  </property>
@@ -875,6 +907,12 @@
               </property>
               <property name="selectionBehavior">
                <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+              </property>
+              <property name="editTriggers">
+               <set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+              </property>
+              <property name="selectionMode">
+               <enum>QAbstractItemView::SelectionMode::NoSelection</enum>
               </property>
               <attribute name="horizontalHeaderVisible">
                <bool>true</bool>

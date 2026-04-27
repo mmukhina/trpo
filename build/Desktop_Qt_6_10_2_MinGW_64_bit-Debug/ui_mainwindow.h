@@ -242,10 +242,10 @@ public:
 "    }\n"
 "    QTab"
                         "Bar::tab:hover:!selected {\n"
-"        background-color: #dfe6e9;\n"
+"        background-color: #ecf0f1;\n"
 "    }\n"
 "    \n"
-"    /* UNIFIED Tree and Table Widget Styling */\n"
+"    /* UNIFIED Tree and Table Widget Styling - NO HIGHLIGHTING */\n"
 "    QTreeWidget, QTableWidget {\n"
 "        background-color: #ffffff;\n"
 "        color: #495057;\n"
@@ -253,34 +253,79 @@ public:
 "        font-size: 12px;\n"
 "        outline: 0;\n"
 "        alternate-background-color: #f8f9fa;\n"
+"        selection-background-color: transparent;\n"
+"        selection-color: #495057;\n"
 "    }\n"
 "    QTreeWidget::item, QTableWidget::item {\n"
 "        padding: 8px;\n"
 "        border-bottom: 1px solid #ecf0f1;\n"
 "        color: #495057;\n"
 "    }\n"
-"    QTreeWidget::item:hover, QTableWidget::item:hover {\n"
-"        background-color: #f0f4f8;\n"
+"    \n"
+"    /* \320\236\321\202\320\272\320\273\321\216\321\207\320\260\320\265\320\274 \320\262\321\213\320\264\320\265\320\273\320\265\320\275\320\270\320\265 \320\270 \320\270\320\267\320\274\320\265\320\275\320\265\320\275\320\270\320\265 \321\206\320\262\320\265\321\202\320\260 \320\277\321\200\320\270 \320\275\320\260\320\262\320\265\320\264\320\265\320\275\320\270\320"
+                        "\270 */\n"
+"    QTreeWidget::item:hover,\n"
+"    QTableWidget::item:hover {\n"
+"        background-color: transparent;\n"
 "    }\n"
-"    QTreeWidget::item:selected, QTableWidget::item:selected {\n"
-"        background-color: #3498db;\n"
-"        color: #ffffff;\n"
+"    \n"
+"    QTreeWidget::item:selected,\n"
+"    QTableWidget::item:selected {\n"
+"        background-color: transparent;\n"
+"        color: #495057;\n"
 "    }\n"
-"    QTreeWidget::item:alternate, QTableWidget::item:alternate {\n"
-"        background-color: #f8f9fa;\n"
+"    \n"
+"    QTreeWidget::item:selected:hover,\n"
+"    QTableWidget::item:selected:hover {\n"
+"        background-color: transparent;\n"
+"    }\n"
+"    \n"
+"    QTreeWidget::item:focus,\n"
+"    QTableWidget::item:focus {\n"
+"        outline: none;\n"
+"        background-color: transparent;\n"
+"        color: #495057;\n"
+"    }\n"
+"    \n"
+"    QTableWidget::item:hover:!selected,\n"
+"    QTreeWidget::item:hover:!selected {\n"
+"        background-color: transparent;\n"
+"    }\n"
+"    \n"
+"    QTreeWidget::branch:hover {\n"
+"        color: #2980b9;\n"
+"    }\n"
+"    \n"
+"    QTreeWidget {\n"
+"        selection-background-color: transparent;\n"
+"        selection-color: #495057;\n"
+"    }\n"
+"    \n"
+"    QTableWidget {\n"
+""
+                        "        selection-background-color: transparent;\n"
+"        selection-color: #495057;\n"
 "    }\n"
 "    \n"
 "    /* UNIFIED Header Styling */\n"
 "    QHeaderView::section {\n"
 "        background-color: #f8fafc;\n"
-""
-                        "        padding: 10px;\n"
+"        padding: 10px;\n"
 "        border: none;\n"
 "        border-bottom: 2px solid #3498db;\n"
 "        font-weight: bold;\n"
 "        font-size: 12px;\n"
 "        color: #2c3e50;\n"
 "    }\n"
+"    \n"
+"    QHeaderView::section:hover {\n"
+"        background-color: #f8fafc;\n"
+"    }\n"
+"    \n"
+"    QHeaderView::section:pressed {\n"
+"        background-color: #f8fafc;\n"
+"    }\n"
+"    \n"
 "    QTableCornerButton::section {\n"
 "        background-color: #f8fafc;\n"
 "        border: none;\n"
@@ -295,7 +340,8 @@ public:
 "    \n"
 "    /* Statistics buttons row */\n"
 "    QWidget#statButtonsWidget {\n"
-"        background-color: #f8f9fa;\n"
+"        background-col"
+                        "or: #f8f9fa;\n"
 "        border-bottom: 1px solid #dee2e6;\n"
 "        padding: 8px;\n"
 "    }\n"
@@ -310,8 +356,7 @@ public:
 "        color: #495057;\n"
 "        min-width: 100px;\n"
 "    }\n"
-"    QPus"
-                        "hButton#statButton:hover {\n"
+"    QPushButton#statButton:hover {\n"
 "        background-color: #dee2e6;\n"
 "    }\n"
 "    QPushButton#statButton[expanded=\"true\"] {\n"
@@ -331,7 +376,8 @@ public:
 "        width: 8px;\n"
 "        border-radius: 4px;\n"
 "    }\n"
-"    QScrollArea#contentScrollArea QScrollBar::handle:vertical {\n"
+"    QScrollArea#cont"
+                        "entScrollArea QScrollBar::handle:vertical {\n"
 "        background: #c0c0c0;\n"
 "        border-radius: 4px;\n"
 "        min-height: 30px;\n"
@@ -343,8 +389,7 @@ public:
 "        background: #2980b9;\n"
 "    }\n"
 "    \n"
-"    QLabel#sentenceL"
-                        "abel {\n"
+"    QLabel#sentenceLabel {\n"
 "        color: #2c3e50;\n"
 "        font-size: 12px;\n"
 "        padding: 6px 8px;\n"
@@ -366,7 +411,8 @@ public:
 "    /* UNIFIED Placeholder styling */\n"
 "    QLabel#placeholderLabel, QLabel#wordFreqPlaceholderLabel {\n"
 "        color: #6c757d;\n"
-"        font-size: 14px;\n"
+"  "
+                        "      font-size: 14px;\n"
 "        font-style: italic;\n"
 "        padding: 40px;\n"
 "        text-align: center;\n"
@@ -381,8 +427,7 @@ public:
 "        margin: 0px;\n"
 "    }\n"
 "    QScrollBar::handle:vertical {\n"
-""
-                        "        background: #c0c0c0;\n"
+"        background: #c0c0c0;\n"
 "        min-height: 30px;\n"
 "        border-radius: 4px;\n"
 "    }\n"
@@ -402,7 +447,8 @@ public:
 "    /* Horizontal scrollbar styling */\n"
 "    QScrollBar:horizontal {\n"
 "        border: none;\n"
-"        background: #f0f0f0;\n"
+""
+                        "        background: #f0f0f0;\n"
 "        height: 8px;\n"
 "        border-radius: 4px;\n"
 "        margin: 0px;\n"
@@ -416,8 +462,7 @@ public:
 "        background: #3498db;\n"
 "    }\n"
 "    QScrollBar::handle:horizontal:pressed {\n"
-"        bac"
-                        "kground: #2980b9;\n"
+"        background: #2980b9;\n"
 "    }\n"
 "    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {\n"
 "        width: 0px;\n"
@@ -437,7 +482,8 @@ public:
 "    /* QTextBrowser styling for statistics details */\n"
 "    QTextBrowser {\n"
 "        background-color: transparent;\n"
-"        border: none;\n"
+"        border: none"
+                        ";\n"
 "        font-size: 12px;\n"
 "        font-family: 'Segoe UI', Arial, sans-serif;\n"
 "        color: #495057;\n"
@@ -598,21 +644,12 @@ public:
         resultsLayout->setObjectName("resultsLayout");
         resultsLayout->setContentsMargins(0, 0, 0, 0);
         treeWidget = new QTreeWidget(resultsPage);
-        QFont font;
-        font.setPointSize(12);
-        font.setBold(true);
-        QTreeWidgetItem *__qtreewidgetitem = new QTreeWidgetItem();
-        __qtreewidgetitem->setFont(0, font);
-        treeWidget->setHeaderItem(__qtreewidgetitem);
         treeWidget->setObjectName("treeWidget");
         treeWidget->setAlternatingRowColors(true);
         treeWidget->setIndentation(20);
-        treeWidget->setHeaderHidden(false);
+        treeWidget->setHeaderHidden(true);
         treeWidget->setExpandsOnDoubleClick(true);
-        treeWidget->header()->setVisible(true);
-        treeWidget->header()->setMinimumSectionSize(150);
-        treeWidget->header()->setDefaultSectionSize(300);
-        treeWidget->header()->setStretchLastSection(true);
+        treeWidget->header()->setVisible(false);
 
         resultsLayout->addWidget(treeWidget);
 
@@ -657,6 +694,7 @@ public:
         wordFreqPlaceholderContainerLayout->setContentsMargins(0, 0, 0, 0);
         wordFreqPlaceholderLabel = new QLabel(wordFreqPlaceholderContainer);
         wordFreqPlaceholderLabel->setObjectName("wordFreqPlaceholderLabel");
+        wordFreqPlaceholderLabel->setEnabled(false);
         wordFreqPlaceholderLabel->setAlignment(Qt::AlignmentFlag::AlignCenter);
 
         wordFreqPlaceholderContainerLayout->addWidget(wordFreqPlaceholderLabel);
@@ -682,6 +720,8 @@ public:
         tableWordStats->setObjectName("tableWordStats");
         tableWordStats->setAlternatingRowColors(true);
         tableWordStats->setSelectionBehavior(QAbstractItemView::SelectionBehavior::SelectRows);
+        tableWordStats->setEditTriggers(QAbstractItemView::EditTrigger::NoEditTriggers);
+        tableWordStats->setSelectionMode(QAbstractItemView::SelectionMode::NoSelection);
         tableWordStats->horizontalHeader()->setVisible(true);
         tableWordStats->horizontalHeader()->setStretchLastSection(true);
         tableWordStats->verticalHeader()->setVisible(false);
@@ -703,7 +743,7 @@ public:
 
         retranslateUi(MainWindow);
 
-        tabWidget->setCurrentIndex(0);
+        tabWidget->setCurrentIndex(2);
         stackedResults->setCurrentIndex(1);
         stackedWordFreq->setCurrentIndex(0);
 

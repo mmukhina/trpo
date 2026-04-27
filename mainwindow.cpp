@@ -31,7 +31,7 @@ void MainWindow::generateHtmlReport()
         return;
     }
 
-    // Пересчитываем статистику
+    // Пересчитываем статистику с учетом фильтров
     calculateStatisticsWithFilter();
 
     QString fileName = QFileDialog::getSaveFileName(this,
@@ -53,25 +53,25 @@ void MainWindow::generateHtmlReport()
         << "body { font-family: 'Segoe UI', Arial, sans-serif; padding: 20px; background: #f0f2f5; color: #333; }"
         << ".container { max-width: 1200px; margin: auto; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); }"
         << "h1 { text-align: center; color: #2c3e50; margin-bottom: 20px; }"
-        << "h2 { color: #2c3e50; margin-top: 30px; margin-bottom: 15px; border-bottom: 2px solid #3498db; padding-bottom: 5px; }"
-        << "h3 { color: #2c3e50; margin-top: 20px; margin-bottom: 10px; }"
 
-        // Стили для предложений
-        << ".sentence { margin-bottom: 30px; border: 1px solid #dee2e6; border-radius: 8px; overflow: hidden; }"
-        << ".sentence-header { background: #f8f9fa; padding: 10px 15px; font-weight: bold; color: #2c3e50; border-bottom: 1px solid #dee2e6; }"
-        << ".sentence-content { padding: 15px; line-height: 2.5; }"
+        // Стили для вкладок
+        << ".tab { overflow: hidden; border-bottom: 1px solid #dee2e6; margin-bottom: 20px; }"
+        << ".tab-link { background-color: #ecf0f1; float: left; border: none; outline: none; cursor: pointer; padding: 12px 20px; transition: 0.3s; font-size: 14px; border-radius: 8px 8px 0 0; margin-right: 2px; }"
+        << ".tab-link:hover { background-color: #dfe6e9; }"
+        << ".tab-link.active { background-color: #3498db; color: white; }"
+        << ".tab-content { display: none; animation: fadeEffect 0.3s; }"
+        << "@keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }"
 
-        // Стили для слов
-        << ".word { display: inline-block; margin: 0 3px; text-align: center; }"
-        << ".pos { font-size: 10px; color: #666; background: #e8f4fd; padding: 2px 6px; border-radius: 4px; display: block; }"
-        << ".text { font-size: 16px; display: block; }"
-
-        // Подчеркивания для членов предложения
-        << ".pod { border-bottom: 2px solid black; }"
-        << ".skaz { border-bottom: 3px double black; }"
-        << ".opred { text-decoration: underline wavy #27ae60; }"
-        << ".dop { border-bottom: 2px dashed #2980b9; }"
-        << ".ob { border-bottom: 2px dotted #e67e22; }"
+        // Стили для дерева (как в Qt)
+        << ".tree { list-style: none; padding-left: 0; }"
+        << ".tree-item { margin: 5px 0; }"
+        << ".tree-header { background: #f8f9fa; padding: 8px 12px; border-radius: 6px; cursor: pointer; font-weight: bold; color: #2c3e50; border: 1px solid #dee2e6; }"
+        << ".tree-header:hover { background: #e9ecef; }"
+        << ".tree-children { margin-left: 25px; margin-top: 5px; display: none; }"
+        << ".leaf { padding: 5px 12px; color: #495057; border-left: 2px solid #3498db; margin: 3px 0; font-size: 12px; }"
+        << ".leaf:hover { background: #f0f4f8; }"
+        << ".word-text { font-weight: 500; }"
+        << ".word-role { color: #3498db; font-size: 11px; margin-left: 8px; }"
 
         // Статистика - карточки
         << ".stats-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 15px; margin: 20px 0; }"
@@ -79,17 +79,19 @@ void MainWindow::generateHtmlReport()
         << ".stat-card h3 { margin: 0 0 5px 0; font-size: 14px; }"
         << ".stat-number { font-size: 28px; font-weight: bold; }"
 
-        // Статистика - детальные секции
+        // Статистика - детальные секции (выпадающие)
         << ".stat-section { margin-bottom: 20px; border: 1px solid #dee2e6; border-radius: 8px; }"
         << ".stat-header { background: #f8f9fa; padding: 12px 15px; cursor: pointer; font-weight: bold; }"
         << ".stat-header:hover { background: #e9ecef; }"
         << ".stat-content { padding: 15px; display: none; max-height: 400px; overflow-y: auto; }"
         << ".stat-item { background: #f8f9fa; padding: 8px 12px; margin-bottom: 8px; border-radius: 6px; border-left: 3px solid #3498db; }"
         << ".sentence-num { font-weight: bold; color: #2c3e50; }"
-        << ".legend { display: flex; flex-wrap: wrap; gap: 20px; justify-content: center; padding: 12px; margin: 20px 0; background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 6px; }"
-        << ".legend-item { display: flex; align-items: center; gap: 8px; color: #6c757d; font-size: 14px; }"
-        << ".legend-word { font-weight: 600; color: #343a40; }"
 
+        // Таблица частотности
+        << "table { width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px; }"
+        << "th { background: #f8fafc; padding: 10px; border-bottom: 2px solid #3498db; font-weight: bold; color: #2c3e50; text-align: left; }"
+        << "td { padding: 8px; border-bottom: 1px solid #ecf0f1; }"
+        << "tr:hover { background: #f0f4f8; }"
         << "</style>"
         << "<script>"
         << "function toggleSection(id) {"
@@ -100,8 +102,6 @@ void MainWindow::generateHtmlReport()
         << "    content.style.display = 'none';"
         << "  }"
         << "}"
-
-        // Функция для открытия вкладок
         << "function openTab(evt, tabName) {"
         << "  var i, tabcontent, tablinks;"
         << "  tabcontent = document.getElementsByClassName('tab-content');"
@@ -115,90 +115,148 @@ void MainWindow::generateHtmlReport()
         << "  document.getElementById(tabName).style.display = 'block';"
         << "  evt.currentTarget.className += ' active';"
         << "}"
-
-        // Открыть первую вкладку по умолчанию
+        << "function toggleTree(id) {"
+        << "  var children = document.getElementById(id);"
+        << "  if (children.style.display === 'none' || children.style.display === '') {"
+        << "    children.style.display = 'block';"
+        << "  } else {"
+        << "    children.style.display = 'none';"
+        << "  }"
+        << "}"
         << "document.addEventListener('DOMContentLoaded', function() {"
         << "  document.getElementById('Analysis').style.display = 'block';"
         << "});"
         << "</script>"
-
-        // Стили для вкладок
-        << "<style>"
-        << ".tab { overflow: hidden; border-bottom: 1px solid #dee2e6; margin-bottom: 20px; }"
-        << ".tab-link { background-color: inherit; float: left; border: none; outline: none; cursor: pointer; padding: 12px 20px; transition: 0.3s; font-size: 16px; border-radius: 8px 8px 0 0; }"
-        << ".tab-link:hover { background-color: #e9ecef; }"
-        << ".tab-link.active { background-color: #3498db; color: white; }"
-        << ".tab-content { display: none; animation: fadeEffect 0.3s; }"
-        << "@keyframes fadeEffect { from {opacity: 0;} to {opacity: 1;} }"
-        << "</style>"
-
         << "</head><body><div class='container'>";
 
-    out << "<div class='legend'>"
-        << "<div class='legend-item'><span class='legend-word pod'>пример</span> — подлежащее</div>"
-        << "<div class='legend-item'><span class='legend-word skaz'>пример</span> — сказуемое</div>"
-        << "<div class='legend-item'><span class='legend-word opred'>пример</span> — определение</div>"
-        << "<div class='legend-item'><span class='legend-word dop'>пример</span> — дополнение</div>"
-        << "<div class='legend-item'><span class='legend-word ob'>пример</span> — обстоятельство</div>"
-        << "</div>";
-
-    // Заголовок
     out << "<h1>Синтаксический разбор текста</h1>";
 
     // Вкладки
     out << "<div class='tab'>"
-        << "<button class='tab-link active' onclick=\"openTab(event, 'Analysis')\">Анализ предложений</button>"
+        << "<button class='tab-link active' onclick=\"openTab(event, 'Analysis')\">Результаты анализа</button>"
         << "<button class='tab-link' onclick=\"openTab(event, 'Statistics')\">Статистика</button>"
         << "<button class='tab-link' onclick=\"openTab(event, 'WordFreq')\">Частотность слов</button>"
         << "</div>";
 
-    // ========== ВКЛАДКА: АНАЛИЗ ПРЕДЛОЖЕНИЙ ==========
+    // ========== ВКЛАДКА: АНАЛИЗ ПРЕДЛОЖЕНИЙ (как в Qt - выпадающий список) ==========
     out << "<div id='Analysis' class='tab-content'>";
 
     QList<int> sentNumbers = sentenceTexts.keys();
     std::sort(sentNumbers.begin(), sentNumbers.end());
 
+    int treeId = 0;
     for (int sentNum : sentNumbers) {
-        out << "<div class='sentence'>";
-        out << "<div class='sentence-header'>Предложение " << sentNum << "</div>";
-        out << "<div class='sentence-content'>";
+        QString sentenceText = sentenceTexts[sentNum];
+        QString sentId = QString("sent_%1").arg(treeId++);
 
-        for (const WordInfo& word : wordsBySentence[sentNum]) {
-            QString cssClass;
-            if (word.sentence == "Подлежащее") cssClass = "pod";
-            else if (word.sentence == "Сказуемое") cssClass = "skaz";
-            else if (word.sentence == "Определение") cssClass = "opred";
-            else if (word.sentence == "Дополнение") cssClass = "dop";
-            else if (word.sentence == "Обстоятельство") cssClass = "ob";
-            else cssClass = "";
+        out << "<div class='tree-item'>";
+        out << "<div class='tree-header' onclick='toggleTree(\"" << sentId << "\")'>";
+        out << "▼ Предложение " << sentNum << ": " << sentenceText.toHtmlEscaped();
+        out << "</div>";
+        out << "<div id='" << sentId << "' class='tree-children'>";
 
-            QString displayPos = word.posRussian;
-            if (displayPos.isEmpty() || word.speech == "PUNCT") {
-                displayPos = "";
+        if (wordsBySentence.contains(sentNum)) {
+            const QList<WordInfo>& words = wordsBySentence[sentNum];
+            bool hasWords = false;
+
+            for (const WordInfo& word : words) {
+                if (!shouldShowWord(word)) {
+                    continue;
+                }
+                if (word.speech == "PUNCT" || word.speech == "SPACE") {
+                    continue;
+                }
+
+                hasWords = true;
+                QString escapedText = word.text;
+                escapedText.replace("&", "&amp;");
+                escapedText.replace("<", "&lt;");
+                escapedText.replace(">", "&gt;");
+
+                out << "<div class='leaf'>"
+                    << "<span class='word-text'>" << escapedText << "</span>"
+                    << "<span class='word-role'>— " << word.sentence << "</span>"
+                    << "</div>";
             }
 
-            QString escapedText = word.text;
-            escapedText.replace("&", "&amp;");
-            escapedText.replace("<", "&lt;");
-            escapedText.replace(">", "&gt;");
-
-            out << "<div class='word'>"
-                << "<span class='text " << cssClass << "'>" << escapedText << "</span>"
-                << "</div>";
+            if (!hasWords) {
+                out << "<div class='leaf' style='color: #6c757d; font-style: italic;'>Нет слов, соответствующих выбранным фильтрам</div>";
+            }
         }
-
         out << "</div></div>";
     }
     out << "</div>";
 
+    // ========== ВКЛАДКА: СТАТИСТИКА ==========
+    out << "<div id='Statistics' class='tab-content'>";
+
+    // Карточки с общей статистикой
+    out << "<div class='stats-grid'>";
+    if (ui->c_pod->isChecked()) {
+        out << "<div class='stat-card'><h3>Подлежащее</h3><div class='stat-number'>" << stats.podlezhaschee << "</div></div>";
+    }
+    if (ui->c_skaz->isChecked()) {
+        out << "<div class='stat-card'><h3>Сказуемое</h3><div class='stat-number'>" << stats.skazuemoe << "</div></div>";
+    }
+    if (ui->c_opred->isChecked()) {
+        out << "<div class='stat-card'><h3>Определение</h3><div class='stat-number'>" << stats.opredelenie << "</div></div>";
+    }
+    if (ui->c_dop->isChecked()) {
+        out << "<div class='stat-card'><h3>Дополнение</h3><div class='stat-number'>" << stats.dopolnenie << "</div></div>";
+    }
+    if (ui->c_ob->isChecked()) {
+        out << "<div class='stat-card'><h3>Обстоятельство</h3><div class='stat-number'>" << stats.obstoyatelstvo << "</div></div>";
+    }
+    if (ui->c_none->isChecked()) {
+        out << "<div class='stat-card'><h3>Другое</h3><div class='stat-number'>" << stats.drugoe << "</div></div>";
+    }
+    out << "</div>";
+
+    // Детальная статистика
+    auto addStatSection = [&out](const QString& title, const QMap<int, QList<QString>>& data, const QString& id, bool isChecked) {
+        if (!isChecked) return;
+
+        int totalCount = 0;
+        for (auto it = data.begin(); it != data.end(); ++it) {
+            totalCount += it.value().size();
+        }
+
+        out << "<div class='stat-section'>"
+            << "<div class='stat-header' onclick='toggleSection(\"" << id << "\")'>"
+            << "▼ " << title
+            << "</div>"
+            << "<div class='stat-content' id='" << id << "'>";
+
+        if (data.isEmpty()) {
+            out << "<p style='color: #6c757d; font-style: italic; text-align: center;'>Нет данных</p>";
+        } else {
+            for (auto it = data.begin(); it != data.end(); ++it) {
+                QString words = it.value().join(", ");
+                out << "<div class='stat-item'>"
+                    << "<span class='sentence-num'>Предложение " << it.key() << ":</span> "
+                    << words
+                    << "</div>";
+            }
+        }
+        out << "</div></div>";
+    };
+
+    addStatSection("Подлежащие", stats.podlezhascheeSentences, "stat-pod", ui->c_pod->isChecked());
+    addStatSection("Сказуемые", stats.skazuemoeSentences, "stat-skaz", ui->c_skaz->isChecked());
+    addStatSection("Определения", stats.opredelenieSentences, "stat-opred", ui->c_opred->isChecked());
+    addStatSection("Дополнения", stats.dopolnenieSentences, "stat-dop", ui->c_dop->isChecked());
+    addStatSection("Обстоятельства", stats.obstoyatelstvoSentences, "stat-ob", ui->c_ob->isChecked());
+    addStatSection("Другое", stats.drugoeSentences, "stat-drugoe", ui->c_none->isChecked());
+
+    out << "</div>";
+
     // ========== ВКЛАДКА: ЧАСТОТНОСТЬ СЛОВ ==========
     out << "<div id='WordFreq' class='tab-content'>";
-    out << "<h2>Частота употребления слов по ролям</h2>";
-    out << "<table style='width:100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;'>";
-    out << "<thead><tr style='background:#f8f9fa; border-bottom: 2px solid #dee2e6;'>"
-        << "<th style='padding:10px; text-align:left;'>Слово</th>"
-        << "<th style='padding:10px; text-align:left;'>Роль</th>"
-        << "<th style='padding:10px; text-align:center; width:80px;'>Количество</th>"
+    out << "<table>"
+        << "<thead><tr>"
+        << "<th>Слово</th>"
+        << "<th>Роль</th>"
+        << "<th style='width:80px; text-align:center;'>Количество</th>"
         << "</tr></thead><tbody>";
 
     QStringList words = wordRoleStats.keys();
@@ -208,72 +266,23 @@ void MainWindow::generateHtmlReport()
         QStringList roleKeys = roles.keys();
         std::sort(roleKeys.begin(), roleKeys.end());
         for (const QString& role : roleKeys) {
-            out << "<tr style='border-bottom: 1px solid #ecf0f1;'>"
-                << "<td style='padding:8px; font-weight:500;'>" << w.toHtmlEscaped() << "</td>"
-                << "<td style='padding:8px;'>" << role << "</td>"
-                << "<td style='padding:8px; text-align:center; font-weight:bold;'>" << roles[role] << "</td>"
-                << "<tr>";
+            out << "<tr>"
+                << "<td>" << w.toHtmlEscaped() << "</td>"
+                << "<td>" << role << "</td>"
+                << "<td style='text-align:center; font-weight:bold;'>" << roles[role] << "</td>"
+                << "</tr>";
         }
     }
-    out << "</tbody></table></div>";
+    out << "</tbody></table>";
+    out << "</div>";
 
-    // ========== ВКЛАДКА: СТАТИСТИКА ==========
-    out << "<div id='Statistics' class='tab-content'>";
-
-    // Карточки с общей статистикой
-    out << "<div class='stats-grid'>"
-        << "<div class='stat-card'><h3>Подлежащее</h3><div class='stat-number'>" << stats.podlezhaschee << "</div></div>"
-        << "<div class='stat-card'><h3>Сказуемое</h3><div class='stat-number'>" << stats.skazuemoe << "</div></div>"
-        << "<div class='stat-card'><h3>Определение</h3><div class='stat-number'>" << stats.opredelenie << "</div></div>"
-        << "<div class='stat-card'><h3>Дополнение</h3><div class='stat-number'>" << stats.dopolnenie << "</div></div>"
-        << "<div class='stat-card'><h3>Обстоятельство</h3><div class='stat-number'>" << stats.obstoyatelstvo << "</div></div>"
-        << "<div class='stat-card'><h3>Другое</h3><div class='stat-number'>" << stats.drugoe << "</div></div>"
-        << "</div>";
-
-    // Детальная статистика по категориям
-    auto addStatSection = [&out](const QString& title, const QMap<int, QList<QString>>& data, const QString& id) {
-        if (data.isEmpty()) {
-            out << "<div class='stat-section'>"
-                << "<div class='stat-header' onclick='toggleSection(\"" << id << "\")'>"
-                << "▼ " << title << " (0 предложений)"
-                << "</div>"
-                << "<div class='stat-content' id='" << id << "'>"
-                << "<p style='color: #6c757d; font-style: italic; text-align: center;'>Нет данных</p>"
-                << "</div></div>";
-            return;
-        }
-
-        out << "<div class='stat-section'>"
-            << "<div class='stat-header' onclick='toggleSection(\"" << id << "\")'>"
-            << "▼ " << title << " (" << data.size() << " предложений)"
-            << "</div>"
-            << "<div class='stat-content' id='" << id << "'>";
-
-        for (auto it = data.begin(); it != data.end(); ++it) {
-            QString words = it.value().join(", ");
-            out << "<div class='stat-item'>"
-                << "<span class='sentence-num'>Предложение " << it.key() << ":</span> "
-                << words
-                << "</div>";
-        }
-
-        out << "</div></div>";
-    };
-
-    addStatSection("Подлежащие", stats.podlezhascheeSentences, "stat-pod");
-    addStatSection("Сказуемые", stats.skazuemoeSentences, "stat-skaz");
-    addStatSection("Определения", stats.opredelenieSentences, "stat-opred");
-    addStatSection("Дополнения", stats.dopolnenieSentences, "stat-dop");
-    addStatSection("Обстоятельства", stats.obstoyatelstvoSentences, "stat-ob");
-    addStatSection("Другое", stats.drugoeSentences, "stat-drugoe");
-
-    out << "</div>"; // Закрываем Statistics tab
     out << "</div></body></html>";
     file.close();
 
     // Открываем файл в браузере
     QDesktopServices::openUrl(QUrl::fromLocalFile(fileName));
 }
+
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -282,6 +291,9 @@ MainWindow::MainWindow(QWidget *parent)
 {
     lastDirectory = QDir::homePath();
     ui->setupUi(this);
+
+    analyzedText = ""; // Изначально текст не анализировался
+    connect(ui->textEdit, &QTextEdit::textChanged, this, &MainWindow::onTextEdited);
 
     // Настройка таблицы частотности слов (созданной в UI)
     QTableWidget *tableFreq = ui->tableWordStats;
@@ -400,9 +412,45 @@ void MainWindow::setupPythonProcess()
             this, &MainWindow::handlePythonFinished);
 }
 
+
+void MainWindow::on_c_pod_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
+void MainWindow::on_c_skaz_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
+void MainWindow::on_c_opred_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
+void MainWindow::on_c_dop_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
+void MainWindow::on_c_ob_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
+void MainWindow::on_c_none_stateChanged(int)
+{
+    updateAllCheckboxState();
+    refreshAllDisplay();
+}
+
 void MainWindow::on_c_all_stateChanged(int arg1)
 {
-    // Блокируем сигналы всех чекбоксов
     ui->c_pod->blockSignals(true);
     ui->c_skaz->blockSignals(true);
     ui->c_opred->blockSignals(true);
@@ -412,7 +460,6 @@ void MainWindow::on_c_all_stateChanged(int arg1)
     ui->c_all->blockSignals(true);
 
     if (arg1 == Qt::Checked) {
-        // Выбираем все
         ui->c_pod->setChecked(true);
         ui->c_skaz->setChecked(true);
         ui->c_opred->setChecked(true);
@@ -420,12 +467,8 @@ void MainWindow::on_c_all_stateChanged(int arg1)
         ui->c_ob->setChecked(true);
         ui->c_none->setChecked(true);
         ui->c_all->setCheckState(Qt::Checked);
-
-        // Включаем кнопку поиска
-        ui->btn_search->setEnabled(true);
     }
     else if (arg1 == Qt::Unchecked) {
-        // Снимаем все
         ui->c_pod->setChecked(false);
         ui->c_skaz->setChecked(false);
         ui->c_opred->setChecked(false);
@@ -433,12 +476,8 @@ void MainWindow::on_c_all_stateChanged(int arg1)
         ui->c_ob->setChecked(false);
         ui->c_none->setChecked(false);
         ui->c_all->setCheckState(Qt::Unchecked);
-
-        // Выключаем кнопку поиска (нет ни одного фильтра)
-        ui->btn_search->setEnabled(false);
     }
 
-    // Разблокируем сигналы
     ui->c_pod->blockSignals(false);
     ui->c_skaz->blockSignals(false);
     ui->c_opred->blockSignals(false);
@@ -447,72 +486,10 @@ void MainWindow::on_c_all_stateChanged(int arg1)
     ui->c_none->blockSignals(false);
     ui->c_all->blockSignals(false);
 
-    // Обновляем отображение, если есть данные
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
+    refreshAllDisplay();
 
-void MainWindow::on_c_pod_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
-
-void MainWindow::on_c_skaz_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
-
-void MainWindow::on_c_opred_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
-
-void MainWindow::on_c_dop_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
-
-void MainWindow::on_c_ob_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
-}
-
-void MainWindow::on_c_none_stateChanged(int)
-{
-    updateAllCheckboxState();
-    if (!sentenceTexts.isEmpty()) {
-        updateDisplay();
-        calculateStatisticsWithFilter();
-        updateStatisticsDisplayWithFilter();
-    }
+    // Добавьте эту строку:
+    updateButtonsState();
 }
 
 void MainWindow::updateAllCheckboxState()
@@ -544,14 +521,7 @@ void MainWindow::updateAllCheckboxState()
     ui->c_all->blockSignals(false);
 
     // ОБНОВЛЯЕМ СОСТОЯНИЕ КНОПКИ ПОИСКА
-    bool hasFilters = ui->c_pod->isChecked() ||
-                      ui->c_skaz->isChecked() ||
-                      ui->c_opred->isChecked() ||
-                      ui->c_dop->isChecked() ||
-                      ui->c_ob->isChecked() ||
-                      ui->c_none->isChecked();
-
-    ui->btn_search->setEnabled(hasFilters);
+    updateButtonsState();
 }
 
 QString MainWindow::createTempFileWithText(const QString& text)
@@ -677,12 +647,34 @@ bool MainWindow::hasOnlyNumbers(const QString& text)
     return true;
 }
 
+void MainWindow::on_btn_search_clicked()
+{
+    if (!isAnyFilterSelected()) {
+        QMessageBox::warning(this, "Нет активных фильтров",
+                             "Не выбран ни один фильтр для отображения слов.\n\n"
+                             "Пожалуйста, выберите хотя бы одну категорию.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    QString searchText = ui->textEdit->toPlainText();
+
+    if (searchText.isEmpty()) {
+        QMessageBox::warning(this, "Пустой поиск",
+                             "Пожалуйста, введите текст для анализа.",
+                             QMessageBox::Ok);
+        return;
+    }
+
+    runAnalysis(searchText);
+}
+
 void MainWindow::runAnalysis(const QString& text)
 {
     if (!isAnyFilterSelected()) {
         QMessageBox::warning(this, "Нет активных фильтров",
                              "Не выбран ни один фильтр для отображения слов.\n\n"
-                             "Пожалуйста, выберите хотя бы одну категорию:\n",
+                             "Пожалуйста, выберите хотя бы одну категорию.",
                              QMessageBox::Ok);
         return;
     }
@@ -730,28 +722,6 @@ void MainWindow::runAnalysis(const QString& text)
     }
 
     currentTempFile = tempFilePath;
-}
-
-void MainWindow::on_btn_search_clicked()
-{
-    if (!isAnyFilterSelected()) {
-        QMessageBox::warning(this, "Нет активных фильтров",
-                             "Не выбран ни один фильтр для отображения слов.\n\n"
-                             "Пожалуйста, выберите хотя бы одну категорию.",
-                             QMessageBox::Ok);
-        return;
-    }
-
-    QString searchText = ui->textEdit->toPlainText();
-
-    if (searchText.isEmpty()) {
-        QMessageBox::warning(this, "Пустой поиск",
-                             "Пожалуйста, введите текст для анализа.",
-                             QMessageBox::Ok);
-        return;
-    }
-
-    runAnalysis(searchText);
 }
 
 bool MainWindow::isUtf8File(const QString& filePath)
@@ -1039,11 +1009,6 @@ void MainWindow::updateStatisticsDisplay()
         buttons[0]->style()->polish(buttons[0]);
         stackedContent->setCurrentIndex(0);
     }
-
-    QString statsText = QString("Статистика: Подлежащих: %1 | Сказуемых: %2 | Определений: %3 | Дополнений: %4 | Обстоятельств: %5 | Прочих: %6")
-                            .arg(stats.podlezhaschee).arg(stats.skazuemoe).arg(stats.opredelenie)
-                            .arg(stats.dopolnenie).arg(stats.obstoyatelstvo).arg(stats.drugoe);
-    statusBar()->showMessage(statsText, 5000);
 }
 
 void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitStatus)
@@ -1061,78 +1026,29 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
     if (exitStatus == QProcess::CrashExit) {
         QMessageBox::critical(this, "Аварийное завершение",
                               "Программа анализа неожиданно завершила работу.\n\n"
-                              "Возможные причины:\n"
-                              "• Недостаточно оперативной памяти\n"
-                              "• Повреждение Python окружения\n"
-                              "• Конфликт версий библиотек\n\n"
-                              "Рекомендация: перезапустите приложение.");
-        showPlaceholderInResults();
-        showPlaceholderStatistics();
-        showPlaceholderWordFreq();
-        ui->btn_download->setEnabled(false);
+                              "Попробуйте перезапустить приложение.");
+        refreshAllDisplay();
     }
     else if (exitCode != 0) {
-        QString errorTitle;
-        QString errorDetails;
-
+        QString errorMessage;
         switch (exitCode) {
-        case 2:
-            errorTitle = "Неверные параметры";
-            errorDetails = "Скрипт анализа вызван с неправильными параметрами.\n"
-                           "Пожалуйста, сообщите разработчику об этой ошибке.";
-            break;
-        case 3:
-            errorTitle = "Ошибка чтения файла";
-            errorDetails = "Не удалось запустить анализ.\n\n"
-                           "Проверьте:\n"
-                           "• Достаточно ли места на диске\n"
-                           "• Есть ли права на запись в папку temp";
-            break;
-        case 4:
-            errorTitle = "Ошибка синтаксического анализа";
-            errorDetails = "Не удалось выполнить синтаксический разбор текста.\n\n"
-                           "Возможные причины:\n"
-                           "• Текст содержит недопустимые символы\n"
-                           "Проверьте текст и попробуйте снова.";
-            break;
-        case 5:
-            errorTitle = "Текст не распознан";
-            errorDetails = "Программа не смогла распознать текст как русскоязычный.\n\n"
-                           "Текст должен:\n"
-                           "• Содержать русские буквы\n"
-                           "• Предложения должны быть осмысленные\n"
-                           "Проверьте текст и попробуйте снова.";
-            break;
-        default:
-            errorTitle = "Неизвестная ошибка";
-            errorDetails = QString("Программа анализа завершилась с кодом ошибки: %1\n\n"
-                                   "Рекомендация: проверьте установку библиотек Python:\n"
-                                   "pip install natasha").arg(exitCode);
-            break;
+        case 2: errorMessage = "Неверные параметры скрипта"; break;
+        case 3: errorMessage = "Ошибка чтения файла"; break;
+        case 4: errorMessage = "Ошибка синтаксического анализа"; break;
+        case 5: errorMessage = "Текст не распознан как русскоязычный"; break;
+        default: errorMessage = "Неизвестная ошибка";
         }
 
-        QMessageBox::warning(this, errorTitle, errorDetails);
-        showPlaceholderInResults();
-        showPlaceholderStatistics();
-        showPlaceholderWordFreq();
-        ui->btn_download->setEnabled(false);
+        QMessageBox::warning(this, "Ошибка анализа",
+                             QString("Не удалось выполнить анализ: %1\n\n"
+                                     "Проверьте, что установлены библиотеки:\n"
+                                     "pip install natasha").arg(errorMessage));
+        refreshAllDisplay();
     }
     else {
         statusBar()->showMessage("Анализ успешно завершен", 3000);
-        if (!sentenceTexts.isEmpty()) {
-            calculateStatisticsWithFilter();  // используем фильтрованную статистику
-            calculateWordRoleStats();
-            updateStatisticsDisplayWithFilter();  // новое отображение
-            updateDisplay();
-            updateWordRoleDisplay();
-            showWordFreqResults();
-            ui->btn_download->setEnabled(true);
-        } else {
-            showPlaceholderInResults();
-            showPlaceholderStatistics();
-            showPlaceholderWordFreq();
-            ui->btn_download->setEnabled(false);
-        }
+        analyzedText = ui->textEdit->toPlainText(); // 🟢 Запоминаем текст только после УСПЕШНОГО анализа
+        refreshAllDisplay(); // Внутри вызовется updateButtonsState() и разблокирует кнопку
     }
 }
 
@@ -1256,9 +1172,12 @@ void MainWindow::on_btn_download_clicked() {
 void MainWindow::calculateWordRoleStats()
 {
     wordRoleStats.clear();
+
     for (auto it = wordsBySentence.begin(); it != wordsBySentence.end(); ++it) {
         for (const WordInfo& word : it.value()) {
             if (word.speech == "PUNCT" || word.speech == "SPACE") continue;
+            if (!shouldShowWord(word)) continue;
+
             QString w = word.text.toLower();
             wordRoleStats[w][word.sentence]++;
         }
@@ -1270,22 +1189,75 @@ void MainWindow::updateWordRoleDisplay()
     QTableWidget *table = ui->tableWordStats;
     if (!table) return;
 
-    table->setRowCount(0);
-    int row = 0;
+    // Проверяем, выбран ли хотя бы один фильтр
+    if (!isAnyFilterSelected()) {
+        table->hide();
 
+        QWidget* parentPage = table->parentWidget();
+        QVBoxLayout* parentLayout = qobject_cast<QVBoxLayout*>(parentPage->layout());
+        if (!parentLayout) return;
+
+        // Ищем или создаем QLabel с уникальным именем
+        QLabel* noFilterLabel = parentPage->findChild<QLabel*>("noFilterWordFreqLabel");
+        if (!noFilterLabel) {
+            noFilterLabel = new QLabel(parentPage);
+            noFilterLabel->setObjectName("noFilterWordFreqLabel");
+            noFilterLabel->setAlignment(Qt::AlignCenter);
+
+            // СТИЛЬ: Полностью идентичен тому, что используется в статистике (см. refreshAllDisplay)
+            noFilterLabel->setStyleSheet("color: #6c757d; padding: 40px; font-style: italic;");
+
+            // ШРИФТ: Явно задаем курсив через QFont, чтобы избежать расхождений из-за CSS-наследования
+            QFont labelFont;
+            labelFont.setItalic(true);
+            noFilterLabel->setFont(labelFont);
+
+            parentLayout->insertWidget(0, noFilterLabel);
+        }
+        noFilterLabel->setText("Нет выбранных фильтров для отображения");
+        noFilterLabel->show();
+        return;
+    }
+
+    // Если фильтры выбраны, скрываем метку и показываем таблицу
+    if (table->parentWidget()) {
+        QLabel* noFilterLabel = table->parentWidget()->findChild<QLabel*>("noFilterWordFreqLabel");
+        if (noFilterLabel) noFilterLabel->hide();
+    }
+
+    table->show();
+    table->setRowCount(0);
+
+    // Проверяем, есть ли данные для отображения
+    if (wordRoleStats.isEmpty()) {
+        table->setRowCount(1);
+        QTableWidgetItem* messageItem = new QTableWidgetItem("Нет данных для отображения с текущими фильтрами");
+        messageItem->setTextAlignment(Qt::AlignCenter);
+        messageItem->setForeground(QBrush(QColor("#6c757d")));
+        QFont font = messageItem->font();
+        font.setItalic(true);
+        messageItem->setFont(font);
+        table->setItem(0, 0, messageItem);
+        table->setItem(0, 1, new QTableWidgetItem(""));
+        table->setItem(0, 2, new QTableWidgetItem(""));
+        table->setSpan(0, 0, 1, 3);
+        return;
+    }
+
+    // Заполнение таблицы частотности (без изменений)
+    int row = 0;
     QStringList words = wordRoleStats.keys();
     std::sort(words.begin(), words.end());
-
     for (const QString& w : words) {
         const QMap<QString, int>& roles = wordRoleStats[w];
         QStringList roleKeys = roles.keys();
         std::sort(roleKeys.begin(), roleKeys.end());
-
         for (const QString& role : roleKeys) {
             table->insertRow(row);
             table->setItem(row, 0, new QTableWidgetItem(w));
             table->setItem(row, 1, new QTableWidgetItem(role));
             table->setItem(row, 2, new QTableWidgetItem(QString::number(roles[role])));
+            table->item(row, 2)->setTextAlignment(Qt::AlignCenter);
             row++;
         }
     }
@@ -1479,7 +1451,6 @@ void MainWindow::updateStatisticsDisplayWithFilter()
     int totalCount = stats.podlezhaschee + stats.skazuemoe + stats.opredelenie +
                      stats.dopolnenie + stats.obstoyatelstvo + stats.drugoe;
 
-    QString statsText = QString("Отображается %1 слов. Фильтры: ").arg(totalCount);
     QStringList activeFilters;
     if (showPod) activeFilters << "Подлежащие";
     if (showSkaz) activeFilters << "Сказуемые";
@@ -1487,14 +1458,6 @@ void MainWindow::updateStatisticsDisplayWithFilter()
     if (showDop) activeFilters << "Дополнения";
     if (showOb) activeFilters << "Обстоятельства";
     if (showNone) activeFilters << "Другое";
-
-    if (!activeFilters.isEmpty()) {
-        statsText += activeFilters.join(", ");
-    } else {
-        statsText += "нет активных фильтров";
-    }
-
-    statusBar()->showMessage(statsText, 5000);
 }
 
 bool MainWindow::isAnyFilterSelected()
@@ -1505,4 +1468,76 @@ bool MainWindow::isAnyFilterSelected()
            ui->c_dop->isChecked() ||
            ui->c_ob->isChecked() ||
            ui->c_none->isChecked();
+}
+
+void MainWindow::refreshAllDisplay()
+{
+    if (sentenceTexts.isEmpty()) {
+        showPlaceholderInResults();
+        showPlaceholderStatistics();
+        showPlaceholderWordFreq();
+        updateButtonsState(); // <-- Заменяем прямое setEnabled
+        return;
+    }
+
+    if (!isAnyFilterSelected()) {
+        updateDisplay();
+
+        QLayoutItem* child;
+        while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
+            if (child->widget()) child->widget()->deleteLater();
+            delete child;
+        }
+        QLabel* noFilterLabel = new QLabel("Нет выбранных фильтров для отображения");
+        noFilterLabel->setAlignment(Qt::AlignCenter);
+        noFilterLabel->setStyleSheet("color: #6c757d; padding: 40px; font-style: italic;");
+        ui->statisticsContainerLayout->addWidget(noFilterLabel);
+
+        updateWordRoleDisplay();
+        showWordFreqResults();
+        updateButtonsState(); // <-- Заменяем прямое setEnabled
+        return;
+    }
+
+    calculateStatisticsWithFilter();
+    calculateWordRoleStats();
+    updateDisplay();
+    updateStatisticsDisplayWithFilter();
+    updateWordRoleDisplay();
+    showWordFreqResults();
+
+    updateButtonsState(); // <-- Единая точка управления состоянием кнопок
+}
+
+void MainWindow::updateButtonsState()
+{
+    bool anyFilterSelected = isAnyFilterSelected();
+    bool isAnalyzing = (pythonProcess && pythonProcess->state() == QProcess::Running);
+    // Текст должен совпадать с последним проанализированным
+    bool textMatches = (!analyzedText.isEmpty() && ui->textEdit->toPlainText() == analyzedText);
+
+    // Кнопка поиска
+    if (isAnalyzing) {
+        ui->btn_search->setEnabled(false);
+    } else {
+        ui->btn_search->setEnabled(anyFilterSelected);
+    }
+
+    // Кнопка сохранения: доступна ТОЛЬКО если текст не менялся, есть данные и выбраны фильтры
+    if (sentenceTexts.isEmpty() || !anyFilterSelected || !textMatches) {
+        ui->btn_download->setEnabled(false);
+    } else {
+        ui->btn_download->setEnabled(true);
+    }
+
+    // Кнопка загрузки
+    ui->btn_upload->setEnabled(!isAnalyzing);
+}
+
+void MainWindow::onTextEdited()
+{
+    // Если текущий текст не совпадает с проанализированным, мгновенно блокируем кнопку
+    if (ui->textEdit->toPlainText() != analyzedText) {
+        ui->btn_download->setEnabled(false);
+    }
 }
