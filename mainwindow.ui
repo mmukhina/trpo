@@ -1,783 +1,954 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <ui version="4.0">
- <class>MainWindow</class>
- <widget class="QMainWindow" name="MainWindow">
-  <property name="geometry">
-   <rect>
-    <x>0</x>
-    <y>0</y>
-    <width>997</width>
-    <height>500</height>
-   </rect>
-  </property>
-  <property name="windowTitle">
-   <string>Синтаксический анализатор</string>
-  </property>
-  <!-- Force light theme colors - never change -->
-  <property name="styleSheet">
-   <string notr="true">
-    /* Force light background - override dark mode */
-    QMainWindow, QWidget#centralwidget {
-        background-color: #e8ecf1;
-    }
-    
-    /* Input frame */
-    QFrame#inputFrame {
-        background-color: #ffffff;
-        border: 1px solid #d0d0d0;
-        border-radius: 8px;
-    }
-    
-    /* Text edit styling - remove extra scrollbar */
-    QTextEdit {
-        border: 1px solid #d0d0d0;
-        border-radius: 6px;
-        padding: 6px;
-        font-size: 12px;
-        background-color: #fafbfc;
-        color: #2c3e50;
-    }
-    QTextEdit:focus {
-        border-color: #3498db;
-        background-color: #ffffff;
-        color: #2c3e50;
-    }
-    
-    /* Button styling */
-    QPushButton {
-        border-radius: 5px;
-        padding: 4px 10px;
-    }
-    
-    QPushButton#btn_search {
-        background-color: #3498db;
-        color: #ffffff;
-        border: none;
-        border-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        padding: 5px 14px;
-    }
-    QPushButton#btn_search:hover {
-        background-color: #2980b9;
-    }
-    QPushButton#btn_search:pressed {
-        background-color: #1f618d;
-    }
-    QPushButton#btn_search:disabled {
-        background-color: #bdc3c7;
-    }
-    
-    QPushButton#btn_upload {
-        background-color: #ecf0f1;
-        color: #2c3e50;
-        border: 1px solid #bdc3c7;
-        border-radius: 6px;
-        font-size: 12px;
-        padding: 5px 14px;
-    }
-    QPushButton#btn_upload:hover {
-        background-color: #dfe6e9;
-    }
-    QPushButton#btn_upload:pressed {
-        background-color: #bdc3c7;
-    }
-    
-    QPushButton#btn_download {
-        background-color: #27ae60;
-        color: #ffffff;
-        border: none;
-        border-radius: 6px;
-        font-size: 12px;
-        padding: 5px 14px;
-    }
-    QPushButton#btn_download:disabled {
-        background-color: #bdc3c7;
-        color: #95a5a6;
-    }
-    QPushButton#btn_download:hover:enabled {
-        background-color: #219a52;
-    }
-    
-    /* Filter frame */
-    QFrame#filterFrame {
-        background-color: #ffffff;
-        border: 1px solid #d0d0d0;
-        border-radius: 8px;
-    }
-    
-    QLabel#filterLabel {
-        color: #2c3e50;
-        font-size: 12px;
-        font-weight: bold;
-    }
-    
-    /* Checkbox styling */
-    QCheckBox {
-        spacing: 6px;
-        font-size: 11px;
-        color: #2c3e50;
-        background-color: transparent;
-    }
-    QCheckBox::indicator {
-        width: 14px;
-        height: 14px;
-        border-radius: 3px;
-        border: 1px solid #bdc3c7;
-        background-color: #ffffff;
-    }
-    QCheckBox::indicator:checked {
-        background-color: #3498db;
-        border-color: #3498db;
-    }
-    QCheckBox::indicator:hover {
-        border-color: #3498db;
-    }
-    
-    QCheckBox#c_all {
-        font-weight: bold;
-        color: #3498db;
-    }
-    QCheckBox#c_all::indicator {
-        border-color: #3498db;
-    }
-    
-    /* Tab widget styling */
-    QTabWidget::pane {
-        background-color: #ffffff;
-        border: 1px solid #d0d0d0;
-        border-radius: 8px;
-    }
-    QTabBar::tab {
-        background-color: #ecf0f1;
-        padding: 6px 16px;
-        margin-right: 2px;
-        border-top-left-radius: 6px;
-        border-top-right-radius: 6px;
-        font-size: 12px;
-        font-weight: 500;
-        color: #2c3e50;
-    }
-    QTabBar::tab:selected {
-        background-color: #ffffff;
-        color: #3498db;
-        border-bottom: 2px solid #3498db;
-    }
-    QTabBar::tab:hover:!selected {
-        background-color: #dfe6e9;
-    }
-    
-    /* Tree widget styling */
-    QTreeWidget {
-        background-color: #ffffff;
-        color: #495057;
-        border: none;
-        font-size: 12px;
-        outline: 0;
-    }
-    QTreeWidget::item {
-        padding: 5px;
-        border-bottom: 1px solid #ecf0f1;
-        background-color: #ffffff;
-    }
-    QTreeWidget::item:hover {
-        background-color: #f0f4f8;
-    }
-    QTreeWidget::item:selected {
-        background-color: #3498db;
-        color: #ffffff;
-    }
-    QHeaderView::section {
-        background-color: #f8fafc;
-        padding: 6px;
-        border: none;
-        border-bottom: 1px solid #d0d0d0;
-        font-weight: 500;
-        font-size: 12px;
-        color: #2c3e50;
-    }
-    
-    /* Statistics container */
-    QWidget#statisticsContainer {
-        background-color: #ffffff;
-        min-height: 520px;
-        max-height: 520px;
-    }
-    
-    /* Statistics buttons row */
-    QWidget#statButtonsWidget {
-        background-color: #f8f9fa;
-        border-bottom: 1px solid #dee2e6;
-        padding: 8px;
-    }
-    
-    QPushButton#statButton {
-        background-color: #e9ecef;
-        border: 1px solid #dee2e6;
-        border-radius: 6px;
-        padding: 8px 12px;
-        font-size: 12px;
-        font-weight: bold;
-        color: #495057;
-        min-width: 100px;
-    }
-    QPushButton#statButton:hover {
-        background-color: #dee2e6;
-    }
-    QPushButton#statButton[expanded="true"] {
-        background-color: #3498db;
-        color: white;
-        border-color: #3498db;
-    }
-    
-    /* Expandable content area */
-    QScrollArea#contentScrollArea {
-        border: none;
-        background-color: white;
-    }
-    QScrollArea#contentScrollArea QScrollBar:vertical {
-        border: none;
-        background: #f0f0f0;
-        width: 8px;
-        border-radius: 4px;
-    }
-    QScrollArea#contentScrollArea QScrollBar::handle:vertical {
-        background: #c0c0c0;
-        border-radius: 4px;
-        min-height: 30px;
-    }
-    QScrollArea#contentScrollArea QScrollBar::handle:vertical:hover {
-        background: #3498db;
-    }
-    QScrollArea#contentScrollArea QScrollBar::handle:vertical:pressed {
-        background: #2980b9;
-    }
-    
-    QLabel#sentenceLabel {
-        color: #2c3e50;
-        font-size: 12px;
-        padding: 6px 8px;
-        background-color: #f8f9fa;
-        border-radius: 4px;
-        margin: 2px 0;
-    }
-    QLabel#sentenceLabel:hover {
-        background-color: #e9ecef;
-    }
-    
-    QLabel#noDataLabel {
-        color: #6c757d;
-        font-style: italic;
-        padding: 20px;
-        text-align: center;
-    }
-    
-    QLabel#placeholderLabel {
-        color: #6c757d;
-        font-size: 14px;
-        font-style: italic;
-        padding: 40px;
-        text-align: center;
-    }
-    
-    /* Scrollbar styling - prevent black color on press */
-    QScrollBar:vertical {
-        border: none;
-        background: #f0f0f0;
-        width: 8px;
-        border-radius: 4px;
-        margin: 0px;
-    }
-    QScrollBar::handle:vertical {
-        background: #c0c0c0;
-        min-height: 30px;
-        border-radius: 4px;
-    }
-    QScrollBar::handle:vertical:hover {
-        background: #3498db;
-    }
-    QScrollBar::handle:vertical:pressed {
-        background: #2980b9;
-    }
-    QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
-        height: 0px;
-    }
-    QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
-        background: none;
-    }
-    
-    /* Horizontal scrollbar styling */
-    QScrollBar:horizontal {
-        border: none;
-        background: #f0f0f0;
-        height: 8px;
-        border-radius: 4px;
-        margin: 0px;
-    }
-    QScrollBar::handle:horizontal {
-        background: #c0c0c0;
-        min-width: 30px;
-        border-radius: 4px;
-    }
-    QScrollBar::handle:horizontal:hover {
-        background: #3498db;
-    }
-    QScrollBar::handle:horizontal:pressed {
-        background: #2980b9;
-    }
-    QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
-        width: 0px;
-    }
-    QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
-        background: none;
-    }
-    
-    /* Status bar styling */
-    QStatusBar {
-        background-color: #2c3e50;
-        color: #ffffff;
-        padding: 3px 6px;
-        font-size: 11px;
-    }
-   </string>
-  </property>
-  <widget class="QWidget" name="centralwidget">
-   <layout class="QVBoxLayout" name="mainLayout">
-    <property name="spacing">
-     <number>8</number>
-    </property>
-    <property name="leftMargin">
-     <number>10</number>
-    </property>
-    <property name="topMargin">
-     <number>10</number>
-    </property>
-    <property name="rightMargin">
-     <number>10</number>
-    </property>
-    <property name="bottomMargin">
-     <number>10</number>
-    </property>
-    <item>
-     <layout class="QHBoxLayout" name="topLayout">
-      <property name="spacing">
-       <number>10</number>
-      </property>
-      <item>
-       <widget class="QFrame" name="inputFrame">
-        <layout class="QVBoxLayout" name="inputLayout">
-         <property name="spacing">
-          <number>8</number>
-         </property>
-         <property name="leftMargin">
-          <number>8</number>
-         </property>
-         <property name="topMargin">
-          <number>8</number>
-         </property>
-         <property name="rightMargin">
-          <number>8</number>
-         </property>
-         <property name="bottomMargin">
-          <number>8</number>
-         </property>
-         <item>
-          <widget class="QTextEdit" name="textEdit">
-           <property name="minimumSize">
-            <size>
-             <width>0</width>
-             <height>100</height>
-            </size>
-           </property>
-           <property name="maximumSize">
-            <size>
-             <width>16777215</width>
-             <height>16777215</height>
-            </size>
-           </property>
-           <property name="placeholderText">
-            <string>Введите текст для анализа...</string>
-           </property>
-           <property name="lineWrapMode">
-            <enum>QTextEdit::WidgetWidth</enum>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <layout class="QHBoxLayout" name="buttonLayout">
-           <property name="spacing">
-            <number>8</number>
-           </property>
-           <item>
-            <widget class="QPushButton" name="btn_search">
-             <property name="minimumSize">
-              <size>
-               <width>80</width>
-               <height>28</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Поиск</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btn_upload">
-             <property name="minimumSize">
-              <size>
-               <width>80</width>
-               <height>28</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Загрузить</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer">
-             <property name="orientation">
-              <enum>Qt::Orientation::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
-           </item>
-           <item>
-            <widget class="QPushButton" name="btn_download">
-             <property name="minimumSize">
-              <size>
-               <width>80</width>
-               <height>28</height>
-              </size>
-             </property>
-             <property name="text">
-              <string>Сохранить</string>
-             </property>
-            </widget>
-           </item>
-          </layout>
-         </item>
-        </layout>
-       </widget>
-      </item>
-      <item>
-       <widget class="QFrame" name="filterFrame">
-        <layout class="QVBoxLayout" name="filterLayout">
-         <property name="spacing">
-          <number>5</number>
-         </property>
-         <property name="leftMargin">
-          <number>8</number>
-         </property>
-         <property name="topMargin">
-          <number>8</number>
-         </property>
-         <property name="rightMargin">
-          <number>8</number>
-         </property>
-         <property name="bottomMargin">
-          <number>8</number>
-         </property>
-         <item>
-          <widget class="QLabel" name="filterLabel">
-           <property name="text">
-            <string>Фильтр</string>
-           </property>
-           <property name="alignment">
-            <set>Qt::AlignmentFlag::AlignCenter</set>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_pod">
-           <property name="text">
-            <string>Подлежащее</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_skaz">
-           <property name="text">
-            <string>Сказуемое</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_opred">
-           <property name="text">
-            <string>Определение</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_dop">
-           <property name="text">
-            <string>Дополнение</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_ob">
-           <property name="text">
-            <string>Обстоятельство</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_none">
-           <property name="text">
-            <string>Другое</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <spacer name="verticalSpacer">
-           <property name="orientation">
-            <enum>Qt::Orientation::Vertical</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-         <item>
-          <widget class="QCheckBox" name="c_all">
-           <property name="text">
-            <string>Выбрать все</string>
-           </property>
-           <property name="checked">
-            <bool>true</bool>
-           </property>
-          </widget>
-         </item>
-        </layout>
-       </widget>
-      </item>
-     </layout>
-    </item>
-    <item>
-     <widget class="QTabWidget" name="tabWidget">
-      <property name="currentIndex">
-       <number>0</number>
-      </property>
-      <widget class="QWidget" name="tab_analysis">
-       <attribute name="title">
-        <string>Результаты анализа</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_2">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QStackedWidget" name="stackedResults">
-          <property name="currentIndex">
-           <number>1</number>
-          </property>
-          <widget class="QWidget" name="placeholderPage">
-           <layout class="QVBoxLayout" name="placeholderLayout">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QWidget" name="placeholderContainer" native="true">
-              <layout class="QVBoxLayout" name="placeholderContainerLayout">
-               <property name="leftMargin">
-                <number>0</number>
-               </property>
-               <property name="topMargin">
-                <number>0</number>
-               </property>
-               <property name="rightMargin">
-                <number>0</number>
-               </property>
-               <property name="bottomMargin">
-                <number>0</number>
-               </property>
-               <item>
-                <widget class="QLabel" name="placeholderLabel">
-                 <property name="styleSheet">
-                  <string notr="true">QLabel#placeholderLabel {
-    color: #6c757d;
-    font-size: 14px;
-    font-style: italic;
-    padding: 40px;
-    text-align: center;
-}</string>
-                 </property>
-                 <property name="text">
-                  <string>Введите текст для анализа</string>
-                 </property>
-                 <property name="alignment">
-                  <set>Qt::AlignmentFlag::AlignCenter</set>
-                 </property>
-                </widget>
-               </item>
-              </layout>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-          <widget class="QWidget" name="resultsPage">
-           <layout class="QVBoxLayout" name="resultsLayout">
-            <property name="leftMargin">
-             <number>0</number>
-            </property>
-            <property name="topMargin">
-             <number>0</number>
-            </property>
-            <property name="rightMargin">
-             <number>0</number>
-            </property>
-            <property name="bottomMargin">
-             <number>0</number>
-            </property>
-            <item>
-             <widget class="QTreeWidget" name="treeWidget">
-              <property name="alternatingRowColors">
-               <bool>false</bool>
-              </property>
-              <property name="indentation">
-               <number>20</number>
-              </property>
-              <property name="headerHidden">
-               <bool>false</bool>
-              </property>
-              <property name="expandsOnDoubleClick">
-               <bool>true</bool>
-              </property>
-              <attribute name="headerVisible">
-               <bool>true</bool>
-              </attribute>
-              <attribute name="headerMinimumSectionSize">
-               <number>150</number>
-              </attribute>
-              <attribute name="headerDefaultSectionSize">
-               <number>300</number>
-              </attribute>
-              <attribute name="headerStretchLastSection">
-               <bool>true</bool>
-              </attribute>
-              <column>
-               <property name="text">
-                <string>Результаты синтаксического анализа</string>
-               </property>
-               <property name="font">
-                <font>
-                 <pointsize>12</pointsize>
-                 <bold>true</bold>
-                </font>
-               </property>
-              </column>
-             </widget>
-            </item>
-           </layout>
-          </widget>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-      <widget class="QWidget" name="tab_statistics">
-       <attribute name="title">
-        <string>Статистика</string>
-       </attribute>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
-        <property name="leftMargin">
-         <number>0</number>
-        </property>
-        <property name="topMargin">
-         <number>0</number>
-        </property>
-        <property name="rightMargin">
-         <number>0</number>
-        </property>
-        <property name="bottomMargin">
-         <number>0</number>
-        </property>
-        <item>
-         <widget class="QWidget" name="statisticsContainer" native="true">
-          <property name="minimumSize">
-           <size>
-            <width>0</width>
-            <height>520</height>
-           </size>
-          </property>
-          <property name="maximumSize">
-           <size>
-            <width>16777215</width>
-            <height>520</height>
-           </size>
-          </property>
-          <layout class="QVBoxLayout" name="statisticsContainerLayout">
-           <property name="spacing">
-            <number>0</number>
-           </property>
-           <property name="leftMargin">
-            <number>0</number>
-           </property>
-           <property name="topMargin">
-            <number>0</number>
-           </property>
-           <property name="rightMargin">
-            <number>0</number>
-           </property>
-           <property name="bottomMargin">
-            <number>0</number>
-           </property>
-          </layout>
-         </widget>
-        </item>
-       </layout>
-      </widget>
-     </widget>
-    </item>
-   </layout>
-  </widget>
-  <widget class="QStatusBar" name="statusbar"/>
- </widget>
- <resources/>
- <connections/>
+<class>MainWindow</class>
+<widget class="QMainWindow" name="MainWindow">
+<property name="geometry">
+<rect>
+<x>0</x>
+<y>0</y>
+<width>997</width>
+<height>803</height>
+</rect>
+</property>
+<property name="windowTitle">
+<string>Синтаксический анализатор</string>
+</property>
+<property name="styleSheet">
+<string notr="true">
+/* Force light background - override dark mode */
+QMainWindow, QWidget#centralwidget {
+background-color: #e8ecf1;
+}
+/* Полное отключение индикатора фокуса для всех виджетов */
+*:focus {
+outline: none;
+}
+QWidget:focus {
+outline: none;
+}
+/* Input frame */
+QFrame#inputFrame {
+background-color: #ffffff;
+border: 1px solid #d0d0d0;
+border-radius: 8px;
+}
+/* Text edit styling */
+QTextEdit {
+border: 1px solid #d0d0d0;
+border-radius: 6px;
+padding: 6px;
+font-size: 12px;
+background-color: #fafbfc;
+color: #2c3e50;
+}
+QTextEdit:focus {
+border-color: #3498db;
+background-color: #ffffff;
+color: #2c3e50;
+outline: none;
+}
+/* Button styling */
+QPushButton {
+border-radius: 5px;
+padding: 4px 10px;
+}
+QPushButton:focus {
+outline: none;
+}
+QPushButton#btn_search {
+background-color: #3498db;
+color: #ffffff;
+border: none;
+border-radius: 6px;
+font-size: 12px;
+font-weight: 500;
+padding: 5px 14px;
+}
+QPushButton#btn_search:hover {
+background-color: #2980b9;
+}
+QPushButton#btn_search:pressed {
+background-color: #1f618d;
+}
+QPushButton#btn_search:disabled {
+background-color: #bdc3c7;
+}
+QPushButton#btn_upload {
+background-color: #ecf0f1;
+color: #2c3e50;
+border: 1px solid #bdc3c7;
+border-radius: 6px;
+font-size: 12px;
+padding: 5px 14px;
+}
+QPushButton#btn_upload:hover {
+background-color: #dfe6e9;
+}
+QPushButton#btn_upload:pressed {
+background-color: #bdc3c7;
+}
+QPushButton#btn_download {
+background-color: #27ae60;
+color: #ffffff;
+border: none;
+border-radius: 6px;
+font-size: 12px;
+padding: 5px 14px;
+}
+QPushButton#btn_download:disabled {
+background-color: #bdc3c7;
+}
+QPushButton#btn_download:hover:enabled {
+background-color: #219a52;
+}
+/* Filter frame */
+QFrame#filterFrame {
+background-color: #ffffff;
+border: 1px solid #d0d0d0;
+border-radius: 8px;
+}
+QLabel#filterLabel {
+color: #2c3e50;
+font-size: 12px;
+font-weight: bold;
+}
+/* Checkbox styling - убираем рамку фокуса */
+QCheckBox {
+spacing: 6px;
+font-size: 11px;
+color: #2c3e50;
+background-color: transparent;
+outline: none;
+}
+QCheckBox:focus {
+outline: none;
+border: none;
+}
+QCheckBox::indicator {
+width: 14px;
+height: 14px;
+border-radius: 3px;
+border: 1px solid #bdc3c7;
+background-color: #ffffff;
+}
+QCheckBox::indicator:checked {
+background-color: #3498db;
+border-color: #3498db;
+}
+QCheckBox::indicator:hover {
+border-color: #3498db;
+}
+QCheckBox::indicator:focus {
+border: 1px solid #3498db;
+outline: none;
+}
+QCheckBox#c_all {
+font-weight: bold;
+color: #3498db;
+}
+QCheckBox#c_all::indicator {
+border-color: #3498db;
+}
+/* Tab widget styling */
+QTabWidget::pane {
+background-color: #ffffff;
+border: 1px solid #d0d0d0;
+border-radius: 8px;
+}
+QTabBar::tab {
+background-color: #ecf0f1;
+padding: 8px 20px;
+margin-right: 2px;
+border-top-left-radius: 6px;
+border-top-right-radius: 6px;
+font-size: 12px;
+font-weight: 500;
+color: #2c3e50;
+min-width: 120px;
+}
+QTabBar::tab:focus {
+outline: none;
+}
+QTabBar::tab:selected {
+background-color: #ffffff;
+color: #3498db;
+border-bottom: 2px solid #3498db;
+}
+QTabBar::tab:hover:!selected {
+background-color: #ecf0f1;
+}
+/* Tree Widget Styling */
+QTreeWidget {
+background-color: #ffffff;
+color: #495057;
+border: none;
+font-size: 12px;
+outline: 0;
+alternate-background-color: #f8f9fa;
+selection-background-color: transparent;
+selection-color: #495057;
+}
+/* Убраны все правила для QTreeWidget::branch, чтобы вернуть системные стрелки */
+QTreeWidget::item {
+padding: 8px;
+border-bottom: 1px solid #ecf0f1;
+color: #495057;
+}
+QTreeWidget::item:hover {
+background-color: transparent;
+}
+QTreeWidget::item:selected {
+background-color: transparent;
+color: #495057;
+}
+QTreeWidget::item:selected:hover {
+background-color: transparent;
+}
+QTreeWidget::item:focus {
+outline: none;
+background-color: transparent;
+color: #495057;
+}
+/* Table Widget Styling */
+QTableWidget {
+background-color: #ffffff;
+color: #495057;
+border: none;
+font-size: 12px;
+outline: 0;
+alternate-background-color: #f8f9fa;
+selection-background-color: transparent;
+selection-color: #495057;
+}
+QTableWidget::item {
+padding: 8px;
+border-bottom: 1px solid #ecf0f1;
+color: #495057;
+}
+QTableWidget::item:hover {
+background-color: transparent;
+}
+QTableWidget::item:selected {
+background-color: transparent;
+color: #495057;
+}
+/* Header Styling */
+QHeaderView::section {
+background-color: #f8fafc;
+padding: 10px;
+border: none;
+border-bottom: 2px solid #3498db;
+font-weight: bold;
+font-size: 12px;
+color: #2c3e50;
+}
+QHeaderView::section:hover {
+background-color: #f8fafc;
+}
+QHeaderView::section:pressed {
+background-color: #f8fafc;
+}
+QTableCornerButton::section {
+background-color: #f8fafc;
+border: none;
+}
+/* Statistics container */
+QWidget#statisticsContainer {
+background-color: #ffffff;
+min-height: 520px;
+max-height: 520px;
+}
+/* Statistics buttons row */
+QWidget#statButtonsWidget {
+background-color: #f8f9fa;
+border-bottom: 1px solid #dee2e6;
+padding: 8px;
+}
+QPushButton#statButton {
+background-color: #e9ecef;
+border: 1px solid #dee2e6;
+border-radius: 6px;
+padding: 8px 12px;
+font-size: 12px;
+font-weight: bold;
+color: #495057;
+min-width: 100px;
+}
+QPushButton#statButton:focus {
+outline: none;
+}
+QPushButton#statButton:hover {
+background-color: #dee2e6;
+}
+QPushButton#statButton[expanded="true"] {
+background-color: #3498db;
+color: white;
+border-color: #3498db;
+}
+/* Expandable content area */
+QScrollArea#contentScrollArea {
+border: none;
+background-color: white;
+}
+QScrollArea#contentScrollArea QScrollBar:vertical {
+border: none;
+background: #f0f0f0;
+width: 8px;
+border-radius: 4px;
+}
+QScrollArea#contentScrollArea QScrollBar::handle:vertical {
+background: #c0c0c0;
+border-radius: 4px;
+min-height: 30px;
+}
+QScrollArea#contentScrollArea QScrollBar::handle:vertical:hover {
+background: #3498db;
+}
+QScrollArea#contentScrollArea QScrollBar::handle:vertical:pressed {
+background: #2980b9;
+}
+QLabel#sentenceLabel {
+color: #2c3e50;
+font-size: 12px;
+padding: 6px 8px;
+background-color: #f8f9fa;
+border-radius: 4px;
+margin: 2px 0;
+}
+QLabel#sentenceLabel:hover {
+background-color: #e9ecef;
+}
+QLabel#noDataLabel {
+color: #6c757d;
+font-style: italic;
+padding: 20px;
+text-align: center;
+}
+/* Placeholder styling */
+QLabel#placeholderLabel, QLabel#wordFreqPlaceholderLabel {
+color: #6c757d;
+font-size: 14px;
+font-style: italic;
+padding: 40px;
+text-align: center;
+}
+/* Scrollbar styling */
+QScrollBar:vertical {
+border: none;
+background: #f0f0f0;
+width: 8px;
+border-radius: 4px;
+margin: 0px;
+}
+QScrollBar::handle:vertical {
+background: #c0c0c0;
+min-height: 30px;
+border-radius: 4px;
+}
+QScrollBar::handle:vertical:hover {
+background: #3498db;
+}
+QScrollBar::handle:vertical:pressed {
+background: #2980b9;
+}
+QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical {
+height: 0px;
+}
+QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+background: none;
+}
+QScrollBar:horizontal {
+border: none;
+background: #f0f0f0;
+height: 8px;
+border-radius: 4px;
+margin: 0px;
+}
+QScrollBar::handle:horizontal {
+background: #c0c0c0;
+min-width: 30px;
+border-radius: 4px;
+}
+QScrollBar::handle:horizontal:hover {
+background: #3498db;
+}
+QScrollBar::handle:horizontal:pressed {
+background: #2980b9;
+}
+QScrollBar::add-line:horizontal, QScrollBar::sub-line:horizontal {
+width: 0px;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal {
+background: none;
+}
+/* Status bar styling */
+QStatusBar {
+background-color: #2c3e50;
+color: #ffffff;
+padding: 3px 6px;
+font-size: 11px;
+}
+/* QTextBrowser styling for statistics details */
+QTextBrowser {
+background-color: transparent;
+border: none;
+font-size: 12px;
+font-family: 'Segoe UI', Arial, sans-serif;
+color: #495057;
+}
+</string>
+</property>
+<widget class="QWidget" name="centralwidget">
+<layout class="QVBoxLayout" name="mainLayout">
+<property name="spacing">
+<number>8</number>
+</property>
+<property name="leftMargin">
+<number>10</number>
+</property>
+<property name="topMargin">
+<number>10</number>
+</property>
+<property name="rightMargin">
+<number>10</number>
+</property>
+<property name="bottomMargin">
+<number>10</number>
+</property>
+<item>
+<layout class="QHBoxLayout" name="topLayout">
+<property name="spacing">
+<number>10</number>
+</property>
+<item>
+<widget class="QFrame" name="inputFrame">
+<layout class="QVBoxLayout" name="inputLayout">
+<property name="spacing">
+<number>8</number>
+</property>
+<property name="leftMargin">
+<number>8</number>
+</property>
+<property name="topMargin">
+<number>8</number>
+</property>
+<property name="rightMargin">
+<number>8</number>
+</property>
+<property name="bottomMargin">
+<number>8</number>
+</property>
+<item>
+<widget class="QTextEdit" name="textEdit">
+<property name="minimumSize">
+<size>
+<width>0</width>
+<height>100</height>
+</size>
+</property>
+<property name="maximumSize">
+<size>
+<width>16777215</width>
+<height>16777215</height>
+</size>
+</property>
+<property name="lineWrapMode">
+<enum>QTextEdit::LineWrapMode::WidgetWidth</enum>
+</property>
+<property name="placeholderText">
+<string>Введите текст для анализа...</string>
+</property>
+</widget>
+</item>
+<item>
+<layout class="QHBoxLayout" name="buttonLayout">
+<property name="spacing">
+<number>8</number>
+</property>
+<item>
+<widget class="QPushButton" name="btn_search">
+<property name="minimumSize">
+<size>
+<width>80</width>
+<height>28</height>
+</size>
+</property>
+<property name="text">
+<string>Поиск</string>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QPushButton" name="btn_upload">
+<property name="minimumSize">
+<size>
+<width>80</width>
+<height>28</height>
+</size>
+</property>
+<property name="text">
+<string>Загрузить</string>
+</property>
+</widget>
+</item>
+<item>
+<spacer name="horizontalSpacer">
+<property name="orientation">
+<enum>Qt::Orientation::Horizontal</enum>
+</property>
+<property name="sizeHint" stdset="0">
+<size>
+<width>40</width>
+<height>20</height>
+</size>
+</property>
+</spacer>
+</item>
+<item>
+<widget class="QPushButton" name="btn_download">
+<property name="minimumSize">
+<size>
+<width>80</width>
+<height>28</height>
+</size>
+</property>
+<property name="text">
+<string>Сохранить</string>
+</property>
+</widget>
+</item>
+</layout>
+</item>
+</layout>
+</widget>
+</item>
+<item>
+<widget class="QFrame" name="filterFrame">
+<layout class="QVBoxLayout" name="filterLayout">
+<property name="spacing">
+<number>5</number>
+</property>
+<property name="leftMargin">
+<number>8</number>
+</property>
+<property name="topMargin">
+<number>8</number>
+</property>
+<property name="rightMargin">
+<number>8</number>
+</property>
+<property name="bottomMargin">
+<number>8</number>
+</property>
+<item>
+<widget class="QLabel" name="filterLabel">
+<property name="text">
+<string>Фильтр</string>
+</property>
+<property name="alignment">
+<set>Qt::AlignmentFlag::AlignCenter</set>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_pod">
+<property name="text">
+<string>Подлежащее</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_skaz">
+<property name="text">
+<string>Сказуемое</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_opred">
+<property name="text">
+<string>Определение</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_dop">
+<property name="text">
+<string>Дополнение</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_ob">
+<property name="text">
+<string>Обстоятельство</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<widget class="QCheckBox" name="c_none">
+<property name="text">
+<string>Другое</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+<item>
+<spacer name="verticalSpacer">
+<property name="orientation">
+<enum>Qt::Orientation::Vertical</enum>
+</property>
+<property name="sizeHint" stdset="0">
+<size>
+<width>20</width>
+<height>20</height>
+</size>
+</property>
+</spacer>
+</item>
+<item>
+<widget class="QCheckBox" name="c_all">
+<property name="text">
+<string>Выбрать все</string>
+</property>
+<property name="checked">
+<bool>true</bool>
+</property>
+</widget>
+</item>
+</layout>
+</widget>
+</item>
+</layout>
+</item>
+<item>
+<widget class="QTabWidget" name="tabWidget">
+<property name="styleSheet">
+<string notr="true"/>
+</property>
+<property name="currentIndex">
+<number>0</number>
+</property>
+<property name="movable">
+<bool>false</bool>
+</property>
+<widget class="QWidget" name="tab_analysis">
+<attribute name="title">
+<string>Результаты анализа</string>
+</attribute>
+<layout class="QVBoxLayout" name="verticalLayout_2">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QStackedWidget" name="stackedResults">
+<property name="currentIndex">
+<number>1</number>
+</property>
+<widget class="QWidget" name="placeholderPage">
+<layout class="QVBoxLayout" name="placeholderLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QWidget" name="placeholderContainer" native="true">
+<layout class="QVBoxLayout" name="placeholderContainerLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QLabel" name="placeholderLabel">
+<property name="text">
+<string>Введите текст для анализа</string>
+</property>
+<property name="alignment">
+<set>Qt::AlignmentFlag::AlignCenter</set>
+</property>
+</widget>
+</item>
+</layout>
+</widget>
+</item>
+</layout>
+</widget>
+<widget class="QWidget" name="resultsPage">
+<layout class="QVBoxLayout" name="resultsLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QTreeWidget" name="treeWidget">
+<property name="alternatingRowColors">
+<bool>true</bool>
+</property>
+<property name="indentation">
+<number>20</number>
+</property>
+<property name="headerHidden">
+<bool>true</bool>
+</property>
+<property name="expandsOnDoubleClick">
+<bool>true</bool>
+</property>
+<property name="rootIsDecorated">
+<bool>true</bool>
+</property>
+<attribute name="headerVisible">
+<bool>false</bool>
+</attribute>
+<column>
+<property name="text">
+<string>Результаты синтаксического анализа</string>
+</property>
+</column>
+</widget>
+</item>
+</layout>
+</widget>
+</widget>
+</item>
+</layout>
+</widget>
+<widget class="QWidget" name="tab_statistics">
+<attribute name="title">
+<string>Статистика</string>
+</attribute>
+<layout class="QVBoxLayout" name="verticalLayout_3">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QWidget" name="statisticsContainer" native="true">
+<property name="minimumSize">
+<size>
+<width>0</width>
+<height>520</height>
+</size>
+</property>
+<property name="maximumSize">
+<size>
+<width>16777215</width>
+<height>520</height>
+</size>
+</property>
+<layout class="QVBoxLayout" name="statisticsContainerLayout">
+<property name="spacing">
+<number>0</number>
+</property>
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+</layout>
+</widget>
+</item>
+</layout>
+</widget>
+<widget class="QWidget" name="tab_word_frequency">
+<attribute name="title">
+<string>Частотность слов</string>
+</attribute>
+<layout class="QVBoxLayout" name="verticalLayout_4">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QStackedWidget" name="stackedWordFreq">
+<property name="currentIndex">
+<number>0</number>
+</property>
+<widget class="QWidget" name="wordFreqPlaceholderPage">
+<layout class="QVBoxLayout" name="wordFreqPlaceholderLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QWidget" name="wordFreqPlaceholderContainer" native="true">
+<layout class="QVBoxLayout" name="wordFreqPlaceholderContainerLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QLabel" name="wordFreqPlaceholderLabel">
+<property name="enabled">
+<bool>false</bool>
+</property>
+<property name="text">
+<string>Введите текст для анализа</string>
+</property>
+<property name="alignment">
+<set>Qt::AlignmentFlag::AlignCenter</set>
+</property>
+</widget>
+</item>
+</layout>
+</widget>
+</item>
+</layout>
+</widget>
+<widget class="QWidget" name="wordFreqResultsPage">
+<layout class="QVBoxLayout" name="wordFreqResultsLayout">
+<property name="leftMargin">
+<number>0</number>
+</property>
+<property name="topMargin">
+<number>0</number>
+</property>
+<property name="rightMargin">
+<number>0</number>
+</property>
+<property name="bottomMargin">
+<number>0</number>
+</property>
+<item>
+<widget class="QTableWidget" name="tableWordStats">
+<property name="editTriggers">
+<set>QAbstractItemView::EditTrigger::NoEditTriggers</set>
+</property>
+<property name="alternatingRowColors">
+<bool>true</bool>
+</property>
+<property name="selectionMode">
+<enum>QAbstractItemView::SelectionMode::NoSelection</enum>
+</property>
+<property name="selectionBehavior">
+<enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+</property>
+<attribute name="horizontalHeaderVisible">
+<bool>true</bool>
+</attribute>
+<attribute name="horizontalHeaderStretchLastSection">
+<bool>true</bool>
+</attribute>
+<attribute name="verticalHeaderVisible">
+<bool>false</bool>
+</attribute>
+<column>
+<property name="text">
+<string>Слово</string>
+</property>
+</column>
+<column>
+<property name="text">
+<string>Роль</string>
+</property>
+</column>
+<column>
+<property name="text">
+<string>Количество</string>
+</property>
+</column>
+</widget>
+</item>
+</layout>
+</widget>
+</widget>
+</item>
+</layout>
+</widget>
+</widget>
+</item>
+</layout>
+</widget>
+<widget class="QStatusBar" name="statusbar"/>
+</widget>
+<resources/>
+<connections/>
 </ui>
