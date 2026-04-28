@@ -11,6 +11,8 @@
 #include <QScrollArea>
 #include <QPushButton>
 #include <QFrame>
+#include <QTableWidget> // 🔹 ДОБАВИТЬ ЭТУ СТРОКУ
+#include <QHeaderView>
 
 QT_BEGIN_NAMESPACE
 namespace Ui { class MainWindow; }
@@ -78,6 +80,7 @@ private:
 
     void calculateWordRoleStats();
     void updateWordRoleDisplay();
+    void setupTableHeader(QTableWidget* table);
 
     void setupPythonProcess();
     void updateAllCheckboxState();

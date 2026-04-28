@@ -30,6 +30,29 @@ SPACE_RE = re.compile(r"\s+")
 VOWELS = set("аеёиоуыэюяАЕЁИОУЫЭЮЯ")
 VOWELS_LOWER = set("аеёиоуыэюя")
 KEYBOARD_ROWS = ("йцукенгшщзхъ", "фывапролджэ", "ячсмитьбю")
+RARE_CYRILLIC_CLUSTERS = (
+    "Р№С†",
+    "Р№С‰",
+    "Р№СЉ",
+    "Р№С‹",
+    "Р№СЊ",
+    "С‰С‰",
+    "С‰С†",
+    "С‰Р№",
+    "С‰С„",
+    "С‰С…",
+    "С‰СЉ",
+    "С‰С‹",
+    "С‰СЊ",
+    "С†С‰",
+    "С†СЉ",
+    "С†СЊ",
+    "СЉР№",
+    "СЉСЊ",
+    "С‹СЊ",
+    "РєС‰",
+    "РіС†",
+)
 COMMON_RU_STOPWORDS = {
     "и",
     "в",
@@ -118,7 +141,24 @@ def configure_stdio() -> None:
 def normalize_text(text: str) -> str:
     text = text.replace("\ufeff", "")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
-    return text
+    return ensure_terminal_punctuation(text)
+
+
+def ensure_terminal_punctuation(text: str) -> str:
+    stripped = text.strip()
+    if not stripped or stripped[-1] in ".!?":
+        return text
+
+    words = [w.strip("-") for w in CYRILLIC_WORD_RE.findall(stripped)]
+    words = [w for w in words if w]
+    if not 1 <= len(words) <= 3:
+        return text
+    if any(get_suspicious_word_reasons(word) for word in words):
+        return text
+    if not any(any(ch in VOWELS_LOWER for ch in word.lower()) for word in words):
+        return text
+
+    return f"{stripped}."
 
 
 def sanitize_output_field(value: object, fallback: str = "_") -> str:
@@ -173,6 +213,11 @@ def max_consonant_run(word: str) -> int:
     return max_run
 
 
+def contains_rare_cyrillic_cluster(word: str) -> bool:
+    w = word.lower()
+    return any(cluster in w for cluster in RARE_CYRILLIC_CLUSTERS)
+
+
 def is_weird_mixed_case(word: str) -> bool:
     letters = [ch for ch in word if ("а" <= ch.lower() <= "я") or ch.lower() == "ё"]
     if len(letters) < 3:
@@ -199,6 +244,8 @@ def get_suspicious_word_reasons(word: str) -> List[str]:
         reasons.append("\u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0440\u0435\u0433\u0438\u0441\u0442\u0440")
     if not any(ch in VOWELS_LOWER for ch in w):
         reasons.append("\u0431\u0435\u0437 \u0433\u043b\u0430\u0441\u043d\u044b\u0445")
+    if len(w) >= 5 and contains_rare_cyrillic_cluster(w):
+        reasons.append("\u0440\u0435\u0434\u043a\u043e\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0435 \u0431\u0443\u043a\u0432")
     if len(w) >= 4 and contains_keyboard_run(w, min_run=4):
         reasons.append("\u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u043d\u044b\u0439 \u043d\u0430\u0431\u043e\u0440")
     if len(w) >= 4 and len(w) >= 2 and w[-1] == w[-2] and w[-1] in VOWELS_LOWER:
@@ -269,6 +316,13 @@ def evaluate_raw_text_quality(
     suspicious_ratio = len(suspicious_words) / len(words)
     debug_log(f"\u041f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u0441\u043b\u043e\u0432: {len(suspicious_words)}/{len(words)} = {suspicious_ratio:.3f}")
 
+    rare_cluster_word_count = sum(1 for w in words if len(w) >= 5 and contains_rare_cyrillic_cluster(w))
+    rare_cluster_ratio = rare_cluster_word_count / len(words)
+    debug_log(
+        f"\u0421\u043b\u043e\u0432 \u0441 \u0440\u0435\u0434\u043a\u0438\u043c\u0438 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u044f\u043c\u0438: "
+        f"{rare_cluster_word_count}/{len(words)} = {rare_cluster_ratio:.3f}"
+    )
+
     stopword_count = sum(1 for w in words if w.lower() in COMMON_RU_STOPWORDS)
     stopword_ratio = stopword_count / len(words)
     debug_log(f"\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0445 \u0440\u0443\u0441\u0441\u043a\u0438\u0445 \u0441\u043b\u043e\u0432: {stopword_count}/{len(words)} = {stopword_ratio:.3f}")
@@ -283,13 +337,25 @@ def evaluate_raw_text_quality(
     if (len(words) >= 3 and suspicious_ratio >= 0.55) or (len(words) >= 6 and suspicious_ratio >= 0.40):
         preview = ", ".join(suspicious_words[:5])
         return True, f"\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043c\u0443\u0441\u043e\u0440\u043d\u044b\u0445 \u0441\u043b\u043e\u0432 ({preview})"
+    if len(words) >= 8 and rare_cluster_ratio >= 0.25:
+        return True, "\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043c\u0430\u043b\u043e\u0432\u0435\u0440\u043e\u044f\u0442\u043d\u044b\u0445 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0439 \u0431\u0443\u043a\u0432"
     if len(words) >= 8 and weird_case_count >= 2 and suspicious_ratio >= 0.15:
         return True, "\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u0441\u043b\u043e\u0432 \u0441 \u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u043c \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u043e\u043c"
     if len(words) >= 8 and repeated_noise >= 2 and suspicious_ratio >= 0.15:
         return True, "\u043c\u043d\u043e\u0433\u043e \u043f\u043e\u0432\u0442\u043e\u0440\u044f\u044e\u0449\u0435\u0433\u043e\u0441\u044f \u0448\u0443\u043c\u043e\u0432\u043e\u0433\u043e \u0441\u043b\u043e\u0432\u0430"
+    if len(words) >= 12 and stopword_ratio < 0.10 and suspicious_ratio >= 0.20:
+        return True, "\u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u043f\u0441\u0435\u0432\u0434\u043e\u0440\u0443\u0441\u0441\u043a\u0438\u0439 \u0442\u0435\u043a\u0441\u0442"
     if len(words) >= 30 and stopword_ratio < 0.03:
         return True, "\u0430\u043d\u043e\u043c\u0430\u043b\u044c\u043d\u043e \u043c\u0430\u043b\u043e \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0445 \u0441\u043b\u043e\u0432 \u0434\u043b\u044f \u0440\u0443\u0441\u0441\u043a\u043e\u0433\u043e \u0442\u0435\u043a\u0441\u0442\u0430"
 
+    return False, ""
+
+    """dead code removed
+            return True, "С‚РµРєСЃС‚ СЃРѕРґРµСЂР¶РёС‚ СЃР»РёС€РєРѕРј РјРЅРѕРіРѕ РјР°Р»РѕРІРµСЂРѕСЏС‚РЅС‹С… СЃРѕС‡РµС‚Р°РЅРёР№ Р±СѓРєРІ"
+    # dead code removed
+            return True, "С‚РµРєСЃС‚ РїРѕС…РѕР¶ РЅР° РїСЃРµРІРґРѕСЂСѓСЃСЃРєРёР№"
+
+    """
     return False, ""
 
 def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
@@ -354,6 +420,15 @@ def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
         )
 
         weird_case_count = sum(1 for _, reasons in suspicious_details if "неестественный регистр" in reasons)
+        rare_cluster_token_count = sum(
+            1 for w in token_words if len(w) >= 5 and contains_rare_cyrillic_cluster(w)
+        )
+        rare_cluster_ratio = rare_cluster_token_count / len(token_words)
+        debug_log(
+            f"РўРѕРєРµРЅРѕРІ СЃ СЂРµРґРєРёРјРё СЃРѕС‡РµС‚Р°РЅРёСЏРјРё: "
+            f"{rare_cluster_token_count}/{len(token_words)} = {rare_cluster_ratio:.3f}"
+        )
+
         repeated_noise = max(Counter(w.lower() for w in suspicious_tokens).values(), default=0)
         debug_log(
             f"Токены с неестественным регистром: {weird_case_count}, "
@@ -369,6 +444,13 @@ def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
             return True, "текст содержит повторяющийся шумовой токен"
 
     return False, ""
+
+
+def get_root_member_info(token) -> Tuple[str, str]:
+    pos = getattr(token, "pos", None)
+    if pos in {"VERB", "AUX"}:
+        return "skaz", "Сказуемое"
+    return "none", "Другое"
 
 
 def get_conj_member_info(token, sent) -> Tuple[str, str]:
@@ -406,6 +488,8 @@ def get_conj_member_info(token, sent) -> Tuple[str, str]:
             "advmod": ("ob", "Обстоятельство"),
             "parataxis": ("ob", "Обстоятельство"),
         }
+        if rel == "root":
+            return get_root_member_info(head_token)
         if rel in mapping:
             return mapping[rel]
         if rel == "conj":
@@ -416,6 +500,9 @@ def get_conj_member_info(token, sent) -> Tuple[str, str]:
 
 
 def get_relation_description(relation, token=None, sent=None) -> str:
+    if relation == "root" and token:
+        _, desc = get_root_member_info(token)
+        return desc
     base_desc = {
         "nsubj": "Подлежащее",
         "obj": "Дополнение",
@@ -446,6 +533,9 @@ def get_relation_description(relation, token=None, sent=None) -> str:
 
 
 def get_relation_type(relation, token=None, sent=None) -> str:
+    if relation == "root" and token:
+        rel_type, _ = get_root_member_info(token)
+        return rel_type
     base_type = {
         "nsubj": "pod",
         "obj": "dop",
@@ -546,6 +636,7 @@ def extract_syntax_relations(doc: Doc) -> List[str]:
 
 def create_formatted_file_from_text(text: str, output_file: str) -> bool:
     try:
+        text = normalize_text(text).strip()
         doc = Doc(text)
         doc.segment(segmenter)
         with open(output_file, "w", encoding="utf-8") as f:
