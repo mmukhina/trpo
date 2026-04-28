@@ -542,7 +542,7 @@ bool MainWindow::callNatasha(const QString path){
 
     statusBar()->showMessage("Выполняется синтаксический анализ...");
 
-    pythonProcess->start("python", arguments);
+    pythonProcess->start("C:/Users/art33/AppData/Local/Python/bin/python.exe", arguments);
 
     if (!pythonProcess->waitForStarted(3000)) {
         QMessageBox::critical(this, "Ошибка запуска",
@@ -1170,23 +1170,33 @@ void MainWindow::on_btn_download_clicked() {
         QTableWidget *table = findChild<QTableWidget*>("tableWordStats");
         if (!table) return;
 
+        // 1. Отключаем сортировку, пока заполняем таблицу, чтобы не было багов
+        table->setSortingEnabled(false);
         table->setRowCount(0);
         int row = 0;
 
         QStringList words = wordRoleStats.keys();
-        std::sort(words.begin(), words.end());
 
         for (const QString& w : words) {
             const QMap<QString, int>& roles = wordRoleStats[w];
-            QStringList roleKeys = roles.keys();
-            std::sort(roleKeys.begin(), roleKeys.end());
-
-            for (const QString& role : roleKeys) {
+            for (auto it = roles.begin(); it != roles.end(); ++it) {
                 table->insertRow(row);
                 table->setItem(row, 0, new QTableWidgetItem(w));
-                table->setItem(row, 1, new QTableWidgetItem(role));
-                table->setItem(row, 2, new QTableWidgetItem(QString::number(roles[role])));
+                table->setItem(row, 1, new QTableWidgetItem(it.key()));
+                QTableWidgetItem *countItem = new QTableWidgetItem();
+                countItem->setData(Qt::DisplayRole, it.value());
+                table->setItem(row, 2, countItem);
+
                 row++;
             }
         }
+
+
+        table->setSortingEnabled(true);
+
+
+        table->horizontalHeader()->setSectionsClickable(true);
+
+
+        table->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
     }
