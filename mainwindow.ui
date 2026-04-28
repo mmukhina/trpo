@@ -19,13 +19,20 @@
 QMainWindow, QWidget#centralwidget {
 background-color: #e8ecf1;
 }
+/* Полное отключение индикатора фокуса для всех виджетов */
+*:focus {
+outline: none;
+}
+QWidget:focus {
+outline: none;
+}
 /* Input frame */
 QFrame#inputFrame {
 background-color: #ffffff;
 border: 1px solid #d0d0d0;
 border-radius: 8px;
 }
-/* Text edit styling - remove extra scrollbar */
+/* Text edit styling */
 QTextEdit {
 border: 1px solid #d0d0d0;
 border-radius: 6px;
@@ -38,11 +45,15 @@ QTextEdit:focus {
 border-color: #3498db;
 background-color: #ffffff;
 color: #2c3e50;
+outline: none;
 }
 /* Button styling */
 QPushButton {
 border-radius: 5px;
 padding: 4px 10px;
+}
+QPushButton:focus {
+outline: none;
 }
 QPushButton#btn_search {
 background-color: #3498db;
@@ -101,12 +112,17 @@ color: #2c3e50;
 font-size: 12px;
 font-weight: bold;
 }
-/* Checkbox styling */
+/* Checkbox styling - убираем рамку фокуса */
 QCheckBox {
 spacing: 6px;
 font-size: 11px;
 color: #2c3e50;
 background-color: transparent;
+outline: none;
+}
+QCheckBox:focus {
+outline: none;
+border: none;
 }
 QCheckBox::indicator {
 width: 14px;
@@ -122,6 +138,10 @@ border-color: #3498db;
 QCheckBox::indicator:hover {
 border-color: #3498db;
 }
+QCheckBox::indicator:focus {
+border: 1px solid #3498db;
+outline: none;
+}
 QCheckBox#c_all {
 font-weight: bold;
 color: #3498db;
@@ -129,7 +149,7 @@ color: #3498db;
 QCheckBox#c_all::indicator {
 border-color: #3498db;
 }
-/* Tab widget styling - UNIFIED */
+/* Tab widget styling */
 QTabWidget::pane {
 background-color: #ffffff;
 border: 1px solid #d0d0d0;
@@ -146,6 +166,9 @@ font-weight: 500;
 color: #2c3e50;
 min-width: 120px;
 }
+QTabBar::tab:focus {
+outline: none;
+}
 QTabBar::tab:selected {
 background-color: #ffffff;
 color: #3498db;
@@ -154,8 +177,8 @@ border-bottom: 2px solid #3498db;
 QTabBar::tab:hover:!selected {
 background-color: #ecf0f1;
 }
-/* UNIFIED Tree and Table Widget Styling - NO HIGHLIGHTING */
-QTreeWidget, QTableWidget {
+/* Tree Widget Styling */
+QTreeWidget {
 background-color: #ffffff;
 color: #495057;
 border: none;
@@ -165,47 +188,51 @@ alternate-background-color: #f8f9fa;
 selection-background-color: transparent;
 selection-color: #495057;
 }
-QTreeWidget::item, QTableWidget::item {
+/* Убраны все правила для QTreeWidget::branch, чтобы вернуть системные стрелки */
+QTreeWidget::item {
 padding: 8px;
 border-bottom: 1px solid #ecf0f1;
 color: #495057;
 }
-/* Отключаем выделение и изменение цвета при наведении */
-QTreeWidget::item:hover,
-QTableWidget::item:hover {
+QTreeWidget::item:hover {
 background-color: transparent;
 }
-QTreeWidget::item:selected,
-QTableWidget::item:selected {
+QTreeWidget::item:selected {
 background-color: transparent;
 color: #495057;
 }
-QTreeWidget::item:selected:hover,
-QTableWidget::item:selected:hover {
+QTreeWidget::item:selected:hover {
 background-color: transparent;
 }
-QTreeWidget::item:focus,
-QTableWidget::item:focus {
+QTreeWidget::item:focus {
 outline: none;
 background-color: transparent;
 color: #495057;
 }
-QTableWidget::item:hover:!selected,
-QTreeWidget::item:hover:!selected {
+/* Table Widget Styling */
+QTableWidget {
+background-color: #ffffff;
+color: #495057;
+border: none;
+font-size: 12px;
+outline: 0;
+alternate-background-color: #f8f9fa;
+selection-background-color: transparent;
+selection-color: #495057;
+}
+QTableWidget::item {
+padding: 8px;
+border-bottom: 1px solid #ecf0f1;
+color: #495057;
+}
+QTableWidget::item:hover {
 background-color: transparent;
 }
-QTreeWidget::branch:hover {
-color: #2980b9;
+QTableWidget::item:selected {
+background-color: transparent;
+color: #495057;
 }
-QTreeWidget {
-selection-background-color: transparent;
-selection-color: #495057;
-}
-QTableWidget {
-selection-background-color: transparent;
-selection-color: #495057;
-}
-/* UNIFIED Header Styling */
+/* Header Styling */
 QHeaderView::section {
 background-color: #f8fafc;
 padding: 10px;
@@ -246,6 +273,9 @@ font-size: 12px;
 font-weight: bold;
 color: #495057;
 min-width: 100px;
+}
+QPushButton#statButton:focus {
+outline: none;
 }
 QPushButton#statButton:hover {
 background-color: #dee2e6;
@@ -294,7 +324,7 @@ font-style: italic;
 padding: 20px;
 text-align: center;
 }
-/* UNIFIED Placeholder styling */
+/* Placeholder styling */
 QLabel#placeholderLabel, QLabel#wordFreqPlaceholderLabel {
 color: #6c757d;
 font-size: 14px;
@@ -302,7 +332,7 @@ font-style: italic;
 padding: 40px;
 text-align: center;
 }
-/* Scrollbar styling - prevent black color on press */
+/* Scrollbar styling */
 QScrollBar:vertical {
 border: none;
 background: #f0f0f0;
@@ -327,7 +357,6 @@ height: 0px;
 QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
 background: none;
 }
-/* Horizontal scrollbar styling */
 QScrollBar:horizontal {
 border: none;
 background: #f0f0f0;
@@ -712,6 +741,9 @@ color: #495057;
 <bool>true</bool>
 </property>
 <property name="expandsOnDoubleClick">
+<bool>true</bool>
+</property>
+<property name="rootIsDecorated">
 <bool>true</bool>
 </property>
 <attribute name="headerVisible">

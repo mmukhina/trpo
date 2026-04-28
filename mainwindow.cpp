@@ -261,10 +261,43 @@ MainWindow::MainWindow(QWidget *parent)
     lastDirectory = QDir::homePath();
     ui->setupUi(this);
 
-    analyzedText = ""; // Изначально текст не анализировался
+    analyzedText = "";
     connect(ui->textEdit, &QTextEdit::textChanged, this, &MainWindow::onTextEdited);
 
-    // Настройка таблицы частотности слов (созданной в UI)
+    // ========== НАСТРОЙКИ ДЛЯ УБИРАНИЯ ФОКУСА (НЕ ТРОГАЕМ СТРЕЛКИ) ==========
+
+    // Отключаем фокус у главного окна и всех виджетов
+    setFocusPolicy(Qt::NoFocus);
+
+    // Отключаем фокус у всех виджетов-фильтров
+    ui->filterFrame->setFocusPolicy(Qt::NoFocus);
+    ui->c_all->setFocusPolicy(Qt::NoFocus);
+    ui->c_pod->setFocusPolicy(Qt::NoFocus);
+    ui->c_skaz->setFocusPolicy(Qt::NoFocus);
+    ui->c_opred->setFocusPolicy(Qt::NoFocus);
+    ui->c_dop->setFocusPolicy(Qt::NoFocus);
+    ui->c_ob->setFocusPolicy(Qt::NoFocus);
+    ui->c_none->setFocusPolicy(Qt::NoFocus);
+
+    // Отключаем фокус у кнопок
+    ui->btn_search->setFocusPolicy(Qt::NoFocus);
+    ui->btn_upload->setFocusPolicy(Qt::NoFocus);
+    ui->btn_download->setFocusPolicy(Qt::NoFocus);
+
+    // Отключаем фокус у дерева результатов
+    ui->treeWidget->setFocusPolicy(Qt::NoFocus);
+    ui->treeWidget->setSelectionMode(QAbstractItemView::NoSelection);
+
+    // Отключаем фокус у вкладок
+    ui->tabWidget->setFocusPolicy(Qt::NoFocus);
+    ui->tabWidget->tabBar()->setFocusPolicy(Qt::NoFocus);
+
+    // Отключаем фокус у таблицы
+    ui->tableWordStats->setFocusPolicy(Qt::NoFocus);
+
+    // ========== КОНЕЦ НАСТРОЕК ==========
+
+    // Настройка таблицы частотности слов
     QTableWidget *tableFreq = ui->tableWordStats;
     if (tableFreq) {
         tableFreq->horizontalHeader()->setSectionResizeMode(QHeaderView::Stretch);
@@ -273,21 +306,11 @@ MainWindow::MainWindow(QWidget *parent)
     setupPythonProcess();
     ui->btn_download->setEnabled(false);
 
-    // Hide the tree widget header
     ui->treeWidget->setHeaderHidden(true);
 
-    // Show placeholder messages on all tabs with consistent styling
     showPlaceholderInResults();
     showPlaceholderStatistics();
     showPlaceholderWordFreq();
-
-    ui->btn_search->setFocusPolicy(Qt::NoFocus);
-    ui->btn_upload->setFocusPolicy(Qt::NoFocus);
-    ui->btn_download->setFocusPolicy(Qt::NoFocus);
-
-    // Убираем рамку фокуса у вкладок
-    ui->tabWidget->setFocusPolicy(Qt::NoFocus);
-    ui->tabWidget->tabBar()->setFocusPolicy(Qt::NoFocus);
 }
 
 MainWindow::~MainWindow()
@@ -1009,9 +1032,7 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
         }
 
         QMessageBox::warning(this, "Ошибка анализа",
-                             QString("Не удалось выполнить анализ: %1\n\n"
-                                     "Проверьте, что установлены библиотеки:\n"
-                                     "pip install natasha").arg(errorMessage));
+                             QString("Не удалось выполнить анализ: %1\n\n").arg(errorMessage));
         refreshAllDisplay();
     }
     else {
@@ -1580,5 +1601,4 @@ void MainWindow::onTextEdited()
         ui->btn_download->setEnabled(false);
     }
 }
-
 

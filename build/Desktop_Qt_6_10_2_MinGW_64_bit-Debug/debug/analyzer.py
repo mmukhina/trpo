@@ -53,6 +53,10 @@ RARE_CYRILLIC_CLUSTERS = (
     "РєС‰",
     "РіС†",
 )
+EXTRA_RARE_CYRILLIC_CLUSTERS = ("\u0446\u0449", "\u0449\u0446", "\u044b\u044d")
+IMPOSSIBLE_Y_BIGRAMS = tuple(f"{left}\u044b" for left in "\u0430\u0435\u0451\u0438\u043e\u0443\u044d\u044e\u044f") + tuple(
+    f"\u044b{right}" for right in "\u044d\u044e\u044f\u0451"
+)
 COMMON_RU_STOPWORDS = {
     "и",
     "в",
@@ -170,6 +174,18 @@ def sanitize_output_field(value: object, fallback: str = "_") -> str:
     return s if s else fallback
 
 
+def is_suspicious_mixed_alnum_token(token: str) -> bool:
+    cyrillic_count = 0
+    digit_count = 0
+    for ch in token:
+        lower = ch.lower()
+        if ("\u0430" <= lower <= "\u044f") or lower == "\u0451":
+            cyrillic_count += 1
+        elif ch.isdigit():
+            digit_count += 1
+    return len(token) >= 8 and cyrillic_count >= 4 and digit_count >= 3
+
+
 def contains_keyboard_run(word: str, min_run: int = 4) -> bool:
     w = word.lower()
     if len(w) < min_run:
@@ -215,7 +231,30 @@ def max_consonant_run(word: str) -> int:
 
 def contains_rare_cyrillic_cluster(word: str) -> bool:
     w = word.lower()
-    return any(cluster in w for cluster in RARE_CYRILLIC_CLUSTERS)
+    return any(cluster in w for cluster in RARE_CYRILLIC_CLUSTERS) or any(
+        cluster in w for cluster in EXTRA_RARE_CYRILLIC_CLUSTERS
+    )
+
+
+def count_impossible_y_bigrams(word: str) -> int:
+    w = word.lower()
+    count = 0
+    for i in range(len(w) - 1):
+        if w[i : i + 2] in IMPOSSIBLE_Y_BIGRAMS:
+            count += 1
+    return count
+
+
+def has_hard_sign_anomaly(word: str) -> bool:
+    w = word.lower()
+    allowed_next = "\u0435\u0451\u044e\u044f"
+    hard_sign = "\u044a"
+    for i, ch in enumerate(w):
+        if ch != hard_sign:
+            continue
+        if i == len(w) - 1 or w[i + 1] not in allowed_next:
+            return True
+    return False
 
 
 def is_weird_mixed_case(word: str) -> bool:
@@ -244,8 +283,12 @@ def get_suspicious_word_reasons(word: str) -> List[str]:
         reasons.append("\u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0440\u0435\u0433\u0438\u0441\u0442\u0440")
     if not any(ch in VOWELS_LOWER for ch in w):
         reasons.append("\u0431\u0435\u0437 \u0433\u043b\u0430\u0441\u043d\u044b\u0445")
+    if len(w) >= 5 and count_impossible_y_bigrams(w) >= 1:
+        reasons.append("\u043c\u0430\u043b\u043e\u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0435 \u0441 \u044b")
     if len(w) >= 5 and contains_rare_cyrillic_cluster(w):
         reasons.append("\u0440\u0435\u0434\u043a\u043e\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0435 \u0431\u0443\u043a\u0432")
+    if len(w) >= 4 and has_hard_sign_anomaly(w):
+        reasons.append("\u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435 \u044a")
     if len(w) >= 4 and contains_keyboard_run(w, min_run=4):
         reasons.append("\u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u043d\u044b\u0439 \u043d\u0430\u0431\u043e\u0440")
     if len(w) >= 4 and len(w) >= 2 and w[-1] == w[-2] and w[-1] in VOWELS_LOWER:
@@ -256,7 +299,7 @@ def get_suspicious_word_reasons(word: str) -> List[str]:
         reasons.append("\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439 \u043a\u043b\u0430\u0441\u0442\u0435\u0440 \u0441\u043e\u0433\u043b\u0430\u0441\u043d\u044b\u0445")
     if len(w) >= 6:
         unique_ratio = len(set(w)) / len(w)
-        if unique_ratio < 0.35:
+        if unique_ratio < 0.35 or (len(w) >= 8 and unique_ratio < 0.46):
             reasons.append("\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043d\u0438\u0437\u043a\u043e\u0435 \u0440\u0430\u0437\u043d\u043e\u043e\u0431\u0440\u0430\u0437\u0438\u0435 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432")
     if len(w) >= 8:
         vowel_ratio = sum(1 for ch in w if ch in VOWELS_LOWER) / len(w)
@@ -296,6 +339,11 @@ def evaluate_raw_text_quality(
     if not words:
         return True, "\u043d\u0435\u0442 \u0441\u043b\u043e\u0432"
 
+    mixed_alnum_count = sum(1 for token in re.findall(r"\S+", text) if is_suspicious_mixed_alnum_token(token))
+    debug_log(f"\u0421\u043c\u0435\u0448\u0430\u043d\u043d\u044b\u0445 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u0430+\u0446\u0438\u0444\u0440\u044b \u0442\u043e\u043a\u0435\u043d\u043e\u0432: {mixed_alnum_count}")
+    if mixed_alnum_count >= 1:
+        return True, "\u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0441\u043c\u0435\u0448\u0435\u043d\u0438\u0435 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u044b \u0438 \u0446\u0438\u0444\u0440"
+
     vowel_ratio = sum(1 for c in cyrillic_chars if c in VOWELS) / len(cyrillic_chars)
     debug_log(f"\u0421\u043e\u043e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u0433\u043b\u0430\u0441\u043d\u044b\u0445: {vowel_ratio:.3f} (\u043d\u043e\u0440\u043c\u0430: {vowel_min}-{vowel_max})")
     if vowel_ratio < vowel_min or vowel_ratio > vowel_max:
@@ -334,7 +382,11 @@ def evaluate_raw_text_quality(
         f"\u043f\u043e\u0432\u0442\u043e\u0440 \u043e\u0434\u043d\u043e\u0433\u043e \u0448\u0443\u043c\u043e\u0432\u043e\u0433\u043e \u0441\u043b\u043e\u0432\u0430: {repeated_noise}"
     )
 
-    if (len(words) >= 3 and suspicious_ratio >= 0.55) or (len(words) >= 6 and suspicious_ratio >= 0.40):
+    if (
+        (len(words) >= 3 and suspicious_ratio >= 0.55)
+        or (len(words) >= 4 and suspicious_ratio >= 0.50)
+        or (len(words) >= 6 and suspicious_ratio >= 0.40)
+    ):
         preview = ", ".join(suspicious_words[:5])
         return True, f"\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043c\u0443\u0441\u043e\u0440\u043d\u044b\u0445 \u0441\u043b\u043e\u0432 ({preview})"
     if len(words) >= 8 and rare_cluster_ratio >= 0.25:
@@ -435,7 +487,10 @@ def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
             f"повтор одного шумового токена: {repeated_noise}"
         )
 
-        if (len(token_words) >= 4 and suspicious_ratio >= 0.55) or (len(token_words) >= 8 and suspicious_ratio >= 0.40):
+        if (
+            (len(token_words) >= 4 and suspicious_ratio >= 0.50)
+            or (len(token_words) >= 8 and suspicious_ratio >= 0.40)
+        ):
             preview = ", ".join(suspicious_tokens[:5])
             return True, f"текст содержит много мусорных токенов ({preview})"
         if len(token_words) >= 8 and weird_case_count >= 2 and suspicious_ratio >= 0.15:
