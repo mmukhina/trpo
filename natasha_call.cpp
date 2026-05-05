@@ -5,6 +5,9 @@
 #include <QFileInfo>
 #include <QDir>
 
+const QString SCRIPT_PATH = "/analyzer.py";
+const QString TEMP_DIR = "/temp";
+
 // Инициализация процесса для вызова Python скрипта
 void MainWindow::setupPythonProcess()
 {
@@ -96,7 +99,7 @@ void MainWindow::handlePythonFinished(int exitCode, QProcess::ExitStatus exitSta
 // Запуск Python скрипта для анализа текста
 bool MainWindow::callNatasha(const QString path){
     // Формируем путь к Python скрипту
-    QString scriptPath = QCoreApplication::applicationDirPath() + "/analyzer.py";
+    QString scriptPath = QCoreApplication::applicationDirPath() + SCRIPT_PATH;
     QFileInfo scriptFile(scriptPath);
 
     // Проверяем существование скрипта
@@ -269,7 +272,7 @@ void MainWindow::processPythonOutput(const QString& output)
 QString MainWindow::createTempFileWithText(const QString& text)
 {
     // Папка для временных файлов в директории программы
-    QString tempDir = QCoreApplication::applicationDirPath() + "/temp";
+    QString tempDir = QCoreApplication::applicationDirPath() + TEMP_DIR;
     QDir dir;
     if (!dir.exists(tempDir)) {
         dir.mkpath(tempDir); // Создаем папку если её нет
