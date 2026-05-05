@@ -11,7 +11,7 @@
 #include <QScrollArea>
 #include <QPushButton>
 #include <QFrame>
-#include <QTableWidget> // 🔹 ДОБАВИТЬ ЭТУ СТРОКУ
+#include <QTableWidget>
 #include <QHeaderView>
 
 QT_BEGIN_NAMESPACE
@@ -85,7 +85,6 @@ private:
     void setupPythonProcess();
     void updateAllCheckboxState();
     QString createTempFileWithText(const QString& text);
-    //bool loadFile(const QString& filePath);
     void processPythonOutput(const QString& output);
     bool shouldShowWord(const WordInfo& word);
     void updateDisplay();
@@ -94,10 +93,9 @@ private:
     bool callNatasha(const QString path);
     bool hasAnyLetter(const QString& text);
     bool hasOnlyNumbers(const QString& text);
-    void calculateStatistics();  // существующий метод
-    void calculateStatisticsWithFilter();  // новый метод
-    void updateStatisticsDisplay();  // существующий метод
-    void updateStatisticsDisplayWithFilter();  // новый метод;
+    void calculateStatisticsWithFilter();
+    void updateStatisticsDisplay();
+    void updateStatisticsDisplayWithFilter();
     void showPlaceholderStatistics();
     void showPlaceholderInResults();
     void showPlaceholderWordFreq();
@@ -108,4 +106,4 @@ private:
     void updateButtonsState();
 };
 
-#endif // MAINWINDOW_H
+#endif

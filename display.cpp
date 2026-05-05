@@ -1,30 +1,27 @@
 #include "mainwindow.h"
 #include "ui_mainwindow.h"
+#include <QHeaderView>
+#include <QBrush>
+#include <QLabel>
 
+// Показать плейсхолдер на вкладке результатов
 void MainWindow::showPlaceholderInResults()
 {
-    ui->stackedResults->setCurrentIndex(0);
-
-    ui->placeholderLabel->setStyleSheet(
-        "QLabel#placeholderLabel {"
-        "    color: #6c757d;"
-        "    font-size: 14px;"
-        "    font-style: italic;"
-        "    padding: 40px;"
-        "    text-align: center;"
-        "}"
-        );
+    ui->stackedResults->setCurrentIndex(0); // Переключаем на страницу с плейсхолдером
     ui->placeholderLabel->setText("Введите текст для анализа");
 }
 
+// Показать плейсхолдер на вкладке статистики
 void MainWindow::showPlaceholderStatistics()
 {
+    // Удаляем все старые виджеты из контейнера
     QLayoutItem* child;
     while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
         if (child->widget()) delete child->widget();
         delete child;
     }
 
+    // Создаем виджет с текстом по центру
     QWidget* placeholderWidget = new QWidget();
     QVBoxLayout* placeholderLayout = new QVBoxLayout(placeholderWidget);
     placeholderLayout->setContentsMargins(0, 0, 0, 0);
@@ -47,45 +44,53 @@ void MainWindow::showPlaceholderStatistics()
     ui->statisticsContainerLayout->addWidget(placeholderWidget);
 }
 
+// Показать плейсхолдер на вкладке частотности слов
 void MainWindow::showPlaceholderWordFreq()
 {
-    ui->stackedWordFreq->setCurrentIndex(0);
+    ui->stackedWordFreq->setCurrentIndex(0); // Страница с плейсхолдером
     ui->wordFreqPlaceholderLabel->setText("Введите текст для анализа");
 }
 
+// Показать таблицу с результатами частотности слов
 void MainWindow::showWordFreqResults()
 {
-    ui->stackedWordFreq->setCurrentIndex(1);
+    ui->stackedWordFreq->setCurrentIndex(1); // Страница с таблицей
 }
 
+// Обновить дерево результатов анализа с учетом выбранных фильтров
 void MainWindow::updateDisplay()
 {
+    // Если нет данных - показать плейсхолдер
     if (sentenceTexts.isEmpty() || wordsBySentence.isEmpty()) {
         showPlaceholderInResults();
         return;
     }
 
-    ui->stackedResults->setCurrentIndex(1);
+    ui->stackedResults->setCurrentIndex(1); // Показать страницу с результатами
     ui->treeWidget->clear();
-    ui->treeWidget->setRootIsDecorated(true);
+    ui->treeWidget->setRootIsDecorated(true);   // Включаем отображение веток
     ui->treeWidget->setExpandsOnDoubleClick(true);
 
+    // Получаем и сортируем номера предложений
     QList<int> sentNumbers = sentenceTexts.keys();
     std::sort(sentNumbers.begin(), sentNumbers.end());
 
+    // Для каждого предложения создаем узел в дереве
     for (int idx = 0; idx < sentNumbers.size(); ++idx) {
         int sentNum = sentNumbers[idx];
         QString sentenceText = sentenceTexts[sentNum];
 
+        // Верхний уровень - предложение
         QTreeWidgetItem* sentItem = new QTreeWidgetItem(ui->treeWidget);
         sentItem->setText(0, QString("Предложение %1: %2").arg(sentNum).arg(sentenceText));
         sentItem->setExpanded(false);
-        sentItem->setForeground(0, QBrush(QColor("#495057")));
 
+        // Стилизация заголовка предложения
         QFont sentFont = sentItem->font(0);
         sentFont.setBold(true);
         sentItem->setFont(0, sentFont);
 
+        // Добавить слова предложения, прошедшие фильтрацию
         if (wordsBySentence.contains(sentNum)) {
             const QList<WordInfo>& words = wordsBySentence[sentNum];
             bool hasWords = false;
@@ -97,18 +102,15 @@ void MainWindow::updateDisplay()
                     QString displayText = QString("%1 — %2")
                                               .arg(word.text)
                                               .arg(word.sentence);
-
                     QTreeWidgetItem* wordItem = new QTreeWidgetItem(sentItem);
                     wordItem->setText(0, displayText);
                 }
             }
 
+            // Если после фильтрации нет слов - показать соответствующее сообщение
             if (!hasWords) {
                 QTreeWidgetItem* noWordsItem = new QTreeWidgetItem(sentItem);
                 noWordsItem->setText(0, "Нет слов, соответствующих выбранным фильтрам");
-                noWordsItem->setForeground(0, QBrush(QColor("#6c757d")));
-                noWordsItem->setTextAlignment(0, Qt::AlignCenter);
-
                 QFont italicFont = noWordsItem->font(0);
                 italicFont.setItalic(true);
                 noWordsItem->setFont(0, italicFont);
@@ -116,20 +118,21 @@ void MainWindow::updateDisplay()
         }
     }
 
-    ui->treeWidget->collapseAll();
+    ui->treeWidget->collapseAll(); // Сворачиваем все элементы
 }
 
+// Обновить таблицу частотности слов
 void MainWindow::updateWordRoleDisplay()
 {
     QTableWidget *table = ui->tableWordStats;
     if (!table) return;
 
-    table->setSortingEnabled(false);
+    table->setSortingEnabled(false); // Отключить сортировку на время заполнения
     table->setRowCount(0);
 
+    // Если нет выбранных фильтров
     if (!isAnyFilterSelected()) {
         table->hide();
-
         QWidget* parentPage = table->parentWidget();
         QVBoxLayout* parentLayout = qobject_cast<QVBoxLayout*>(parentPage->layout());
         if (!parentLayout) return;
@@ -139,10 +142,6 @@ void MainWindow::updateWordRoleDisplay()
             noFilterLabel = new QLabel(parentPage);
             noFilterLabel->setObjectName("noFilterWordFreqLabel");
             noFilterLabel->setAlignment(Qt::AlignCenter);
-            noFilterLabel->setStyleSheet("color: #6c757d; padding: 40px; font-style: italic;");
-            QFont labelFont;
-            labelFont.setItalic(true);
-            noFilterLabel->setFont(labelFont);
             parentLayout->insertWidget(0, noFilterLabel);
         }
         noFilterLabel->setText("Нет выбранных фильтров для отображения");
@@ -150,30 +149,28 @@ void MainWindow::updateWordRoleDisplay()
         return;
     }
 
+    // Скрываем метку и показываем таблицу
     if (table->parentWidget()) {
         QLabel* noFilterLabel = table->parentWidget()->findChild<QLabel*>("noFilterWordFreqLabel");
         if (noFilterLabel) noFilterLabel->hide();
     }
     table->show();
 
+    // Если нет данных - показываем сообщение
     if (wordRoleStats.isEmpty()) {
         table->setRowCount(1);
         QTableWidgetItem* messageItem = new QTableWidgetItem("Нет данных для отображения с текущими фильтрами");
         messageItem->setTextAlignment(Qt::AlignCenter);
-        messageItem->setForeground(QBrush(QColor("#6c757d")));
-        QFont font = messageItem->font();
-        font.setItalic(true);
-        messageItem->setFont(font);
         table->setItem(0, 0, messageItem);
         table->setItem(0, 1, new QTableWidgetItem(""));
         table->setItem(0, 2, new QTableWidgetItem(""));
         table->setSpan(0, 0, 1, 3);
-
         setupTableHeader(table);
         table->setSortingEnabled(true);
         return;
     }
 
+    // Заполнение таблицы данными
     int row = 0;
     QStringList words = wordRoleStats.keys();
     std::sort(words.begin(), words.end());
@@ -188,10 +185,10 @@ void MainWindow::updateWordRoleDisplay()
             table->setItem(row, 0, new QTableWidgetItem(w));
             table->setItem(row, 1, new QTableWidgetItem(role));
 
+            // Сохраняем число как числовые данные для правильной сортировки
             QTableWidgetItem *countItem = new QTableWidgetItem();
             countItem->setData(Qt::DisplayRole, roles[role]);
             table->setItem(row, 2, countItem);
-
             table->item(row, 2)->setTextAlignment(Qt::AlignCenter);
             row++;
         }
@@ -199,10 +196,10 @@ void MainWindow::updateWordRoleDisplay()
 
     setupTableHeader(table);
     table->setSortingEnabled(true);
-
     table->sortByColumn(0, Qt::AscendingOrder);
 }
 
+// Настройка заголовка таблицы с кастомной сортировкой
 void MainWindow::setupTableHeader(QTableWidget* table)
 {
     if (!table) return;
@@ -257,8 +254,10 @@ void MainWindow::setupTableHeader(QTableWidget* table)
     table->sortByColumn(0, Qt::AscendingOrder);
 }
 
+// Обновляет отображение статистики с учетом фильтров
 void MainWindow::updateStatisticsDisplayWithFilter()
 {
+    // очищаем контейнер статистики от старых виджетов
     QLayoutItem* child;
     while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
         if (child->widget()) {
@@ -267,19 +266,22 @@ void MainWindow::updateStatisticsDisplayWithFilter()
         delete child;
     }
 
+    // создаем панель с кнопками
     QWidget* buttonsWidget = new QWidget();
     buttonsWidget->setObjectName("statButtonsWidget");
     QHBoxLayout* buttonsLayout = new QHBoxLayout(buttonsWidget);
     buttonsLayout->setSpacing(10);
     buttonsLayout->setContentsMargins(10, 8, 10, 8);
 
+    // структура для хранения данных статистики
     struct StatData {
-        QString title;
-        int count;
-        QMap<int, QList<QString>>* data;
-        bool enabled;
+        QString title;                        // название роли
+        int count;                            // количество слов данной роли
+        QMap<int, QList<QString>>* data;      // слова по номерам предложений
+        bool enabled;                         // включен ли фильтр для этой роли
     };
 
+    // получаем состояние фильтров
     bool showPod = ui->c_pod->isChecked();
     bool showSkaz = ui->c_skaz->isChecked();
     bool showOpred = ui->c_opred->isChecked();
@@ -296,12 +298,14 @@ void MainWindow::updateStatisticsDisplayWithFilter()
         {"Другое", stats.drugoe, &stats.drugoeSentences, showNone}
     };
 
+    // контейнер для переключения страниц по кнопкам
     QStackedWidget* stackedContent = new QStackedWidget();
     stackedContent->setObjectName("contentScrollArea");
     stackedContent->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
 
     QList<QPushButton*> buttons;
 
+    // создаем кнопки и страницы только для активных полей
     for (int i = 0; i < statList.size(); ++i) {
         const StatData& stat = statList[i];
         if (!stat.enabled) continue;
@@ -339,6 +343,8 @@ void MainWindow::updateStatisticsDisplayWithFilter()
                 int key = keys[j];
                 QStringList values = stat.data->value(key);
                 QString wordsText = values.join(", ");
+
+                // обрезаем длинные строки для читаемости
                 if (wordsText.length() > 200) {
                     wordsText = wordsText.left(197) + "...";
                 }
@@ -359,6 +365,7 @@ void MainWindow::updateStatisticsDisplayWithFilter()
 
     buttonsLayout->addStretch();
 
+    // подключаем кнопки к переключению страниц
     for (int i = 0; i < buttons.size(); ++i) {
         int index = i;
         connect(buttons[i], &QPushButton::clicked, [buttons, stackedContent, index]() {
@@ -390,7 +397,7 @@ void MainWindow::updateStatisticsDisplayWithFilter()
     }
 }
 
-
+// Обновление всех вкладок интерфейса
 void MainWindow::refreshAllDisplay()
 {
     if (sentenceTexts.isEmpty()) {
@@ -404,6 +411,7 @@ void MainWindow::refreshAllDisplay()
     if (!isAnyFilterSelected()) {
         updateDisplay();
 
+        // Показать сообщение на вкладке статистики
         QLayoutItem* child;
         while ((child = ui->statisticsContainerLayout->takeAt(0)) != nullptr) {
             if (child->widget()) child->widget()->deleteLater();
@@ -411,7 +419,6 @@ void MainWindow::refreshAllDisplay()
         }
         QLabel* noFilterLabel = new QLabel("Нет выбранных фильтров для отображения");
         noFilterLabel->setAlignment(Qt::AlignCenter);
-        noFilterLabel->setStyleSheet("color: #6c757d; padding: 40px; font-style: italic;");
         ui->statisticsContainerLayout->addWidget(noFilterLabel);
 
         updateWordRoleDisplay();
@@ -420,17 +427,17 @@ void MainWindow::refreshAllDisplay()
         return;
     }
 
+    // Обновить все компоненты
     calculateStatisticsWithFilter();
     calculateWordRoleStats();
     updateDisplay();
     updateStatisticsDisplayWithFilter();
     updateWordRoleDisplay();
     showWordFreqResults();
-
     updateButtonsState();
 }
 
-
+// ОбновОбновить состояние чекбокса "Выбрать все" на основе других чекбоксов
 void MainWindow::updateAllCheckboxState()
 {
     ui->c_all->blockSignals(true);
@@ -458,23 +465,24 @@ void MainWindow::updateAllCheckboxState()
     }
 
     ui->c_all->blockSignals(false);
-
     updateButtonsState();
 }
 
-
+// Обновляет состояние кнопок в зависимости от текущего состояния приложения
 void MainWindow::updateButtonsState()
 {
     bool anyFilterSelected = isAnyFilterSelected();
     bool isAnalyzing = (pythonProcess && pythonProcess->state() == QProcess::Running);
     bool textMatches = (!analyzedText.isEmpty() && ui->textEdit->toPlainText() == analyzedText);
 
+    // Кнопка поиска: недоступна во время анализа
     if (isAnalyzing) {
         ui->btn_search->setEnabled(false);
     } else {
         ui->btn_search->setEnabled(anyFilterSelected);
     }
 
+    // Кнопка сохранения: доступна только если есть данные, текст не менялся и есть фильтры
     if (sentenceTexts.isEmpty() || !anyFilterSelected || !textMatches) {
         ui->btn_download->setEnabled(false);
     } else {
@@ -484,6 +492,7 @@ void MainWindow::updateButtonsState()
     ui->btn_upload->setEnabled(!isAnalyzing);
 }
 
+// Подсчитываем статистику частотности слов
 void MainWindow::calculateWordRoleStats()
 {
     wordRoleStats.clear();
@@ -494,19 +503,20 @@ void MainWindow::calculateWordRoleStats()
         const QList<WordInfo>& words = wordsBySentence[sentenceNum];
         for (int j = 0; j < words.size(); ++j) {
             const WordInfo& word = words[j];
+            // Пропускаем знаки препинания и пробелы
             if (word.speech == "PUNCT" || word.speech == "SPACE") continue;
             if (!shouldShowWord(word)) continue;
 
-            QString w = word.text.toLower();
+            QString w = word.text.toLower(); // Приводим к нижнему регистру для группировки
             wordRoleStats[w][word.sentence]++;
         }
     }
 }
 
-
+// Подсчитываем статистику с учетом выбранных фильтров
 void MainWindow::calculateStatisticsWithFilter()
 {
-    stats = Statistics();
+    stats = Statistics(); // Сбросить статистику
 
     QList<int> keys = wordsBySentence.keys();
     for (int i = 0; i < keys.size(); ++i) {
@@ -516,10 +526,12 @@ void MainWindow::calculateStatisticsWithFilter()
         for (int j = 0; j < words.size(); ++j) {
             const WordInfo& word = words[j];
 
+            // Пропускаем слова, которые не проходят фильтр
             if (!shouldShowWord(word)) {
                 continue;
             }
 
+            // Распределяем по синтаксическим ролям
             if (word.sentence == "Подлежащее") {
                 stats.podlezhaschee++;
                 stats.podlezhascheeSentences[sentenceNum].append(word.text);

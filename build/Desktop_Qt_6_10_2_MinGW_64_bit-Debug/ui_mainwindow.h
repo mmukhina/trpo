@@ -639,9 +639,9 @@ public:
         treeWidget->setObjectName("treeWidget");
         treeWidget->setAlternatingRowColors(true);
         treeWidget->setIndentation(20);
+        treeWidget->setRootIsDecorated(true);
         treeWidget->setHeaderHidden(true);
         treeWidget->setExpandsOnDoubleClick(true);
-        treeWidget->setRootIsDecorated(true);
         treeWidget->header()->setVisible(false);
 
         resultsLayout->addWidget(treeWidget);

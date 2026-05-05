@@ -69,7 +69,7 @@ void MainWindow::on_c_all_stateChanged(int arg1)
         ui->c_all->setCheckState(Qt::Checked);
     }
     else if (arg1 == Qt::Unchecked) {
-        // Если "Выбрать все" снят - выключаем все чекбоксы
+        // Если "Выбрать все" не отмечен - выключаем все чекбоксы
         ui->c_pod->setChecked(false);
         ui->c_skaz->setChecked(false);
         ui->c_opred->setChecked(false);
@@ -92,7 +92,7 @@ void MainWindow::on_c_all_stateChanged(int arg1)
     updateButtonsState(); // Обновляем состояние кнопок
 }
 
-// Нажатие кнопки "Поиск" (запуск анализа)
+// Нажатие кнопки "Поиск"
 void MainWindow::on_btn_search_clicked()
 {
     // Проверяем, выбран ли хотя бы один фильтр

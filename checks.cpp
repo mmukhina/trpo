@@ -82,7 +82,7 @@ bool MainWindow::shouldShowWord(const WordInfo& word)
     return ui->c_none->isChecked(); // Все остальные роли идут в "Другое"
 }
 
-// Проверяет, выбран ли хотя бы один фильтр для отображения
+// Проверка, выбран ли хотя бы один фильтр для отображения
 bool MainWindow::isAnyFilterSelected()
 {
     return ui->c_pod->isChecked() ||
