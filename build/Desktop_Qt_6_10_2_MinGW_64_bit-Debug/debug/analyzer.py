@@ -2,61 +2,73 @@
 import os
 import re
 import sys
-from collections import Counter
-from dataclasses import dataclass
-from typing import Dict, List, Optional, Sequence, Tuple
+from functools import lru_cache
+from collections import Counter #подсчет частотности элементов, применяется для анализа повторов шумовых слов
+from dataclasses import dataclass #для ProcessResult
+from typing import Dict, List, Optional, Sequence, Tuple #модуль аннотации типов
 
 from natasha import (
-    Doc,
-    MorphVocab,
-    NewsEmbedding,
-    NewsMorphTagger,
-    NewsSyntaxParser,
-    Segmenter,
+    Doc, # Контейнер-документ, к которому последовательно применяются все NLP-компоненты
+    MorphVocab, # Словарь для лемматизации (приведения слов к начальной форме)
+    NewsEmbedding, # Предобученные векторные представления слов (эмбеддинги)
+    NewsMorphTagger, # Морфологический теггер: определяет части речи, падежи, числа и тд
+    NewsSyntaxParser, # Синтаксический парсер: строит дерево зависимостей (подлежащее, сказуемое...)
+    Segmenter, # Сегментатор: разбивает сырой текст на предложения
 )
 
-# Initialization of Natasha components.
+# Инициализация компонент Наташи
 segmenter = Segmenter()
 morph_vocab = MorphVocab()
 embedding = NewsEmbedding()
 morph_tagger = NewsMorphTagger(embedding)
 syntax_parser = NewsSyntaxParser(embedding)
 
+# Флаг для отладки, включен по умолчанию.Отключить через ANALYZER_DEBUG=0
 DEBUG_ENABLED = os.getenv("ANALYZER_DEBUG", "1").lower() not in {"0", "false", "no"}
 
+# Регулярные выражения для поиска кириллицы и слов
 CYRILLIC_CHAR_RE = re.compile(r"[а-яА-ЯёЁ]")
 CYRILLIC_WORD_RE = re.compile(r"[а-яА-ЯёЁ-]+")
 SPACE_RE = re.compile(r"\s+")
+
+# Наборы кириллических символов для проверок
 VOWELS = set("аеёиоуыэюяАЕЁИОУЫЭЮЯ")
 VOWELS_LOWER = set("аеёиоуыэюя")
 KEYBOARD_ROWS = ("йцукенгшщзхъ", "фывапролджэ", "ячсмитьбю")
+
+# Редкие/неестественные сочетания кириллических букв
 RARE_CYRILLIC_CLUSTERS = (
-    "Р№С†",
-    "Р№С‰",
-    "Р№СЉ",
-    "Р№С‹",
-    "Р№СЊ",
-    "С‰С‰",
-    "С‰С†",
-    "С‰Р№",
-    "С‰С„",
-    "С‰С…",
-    "С‰СЉ",
-    "С‰С‹",
-    "С‰СЊ",
-    "С†С‰",
-    "С†СЉ",
-    "С†СЊ",
-    "СЉР№",
-    "СЉСЊ",
-    "С‹СЊ",
-    "РєС‰",
-    "РіС†",
+    "йц",
+    "йщ",
+    "йъ",
+    "йы",
+    "йь",
+    "щщ",
+    "щц",
+    "щй",
+    "щф",
+    "щх",
+    "щъ",
+    "щы",
+    "щь",
+    "цщ",
+    "цъ",
+    "ць",
+    "ъй",
+    "ъь",
+    "ыь",
+    "кщ",
+    "гц",
 )
-EXTRA_RARE_CYRILLIC_CLUSTERS = ("\u0446\u0449", "\u0449\u0446", "\u044b\u044d")
-IMPOSSIBLE_Y_BIGRAMS = tuple(f"{left}\u044b" for left in "\u0430\u0435\u0451\u0438\u043e\u0443\u044d\u044e\u044f") + tuple(
-    f"\u044b{right}" for right in "\u044d\u044e\u044f\u0451"
+
+# цщ, щц, ыэ
+EXTRA_RARE_CYRILLIC_CLUSTERS = ("цщ", "щц", "ыэ")
+
+# аы, еы, ёы, иы, оы, уы, эы, юы, яы + ыэ, ыю, ыя, ыё
+IMPOSSIBLE_Y_BIGRAMS = tuple(f"{left}ы" for left in "аеёиоуэюя") + tuple(
+    f"ы{right}" for right in "эюяё"
 )
+# слова, которые встречаются во всех естественных текстах
 COMMON_RU_STOPWORDS = {
     "и",
     "в",
@@ -115,7 +127,35 @@ COMMON_RU_STOPWORDS = {
     "через",
     "про",
 }
+# синтаксические роли
+CONJ_ROLE_MAP = {
+    "nsubj": ("pod", "Подлежащее"), "root": ("skaz", "Сказуемое"),
+    "advcl": ("skaz", "Сказуемое"), "obj": ("dop", "Дополнение"),
+    "iobj": ("dop", "Дополнение"), "obl": ("dop", "Дополнение"),
+    "xcomp": ("dop", "Дополнение"), "ccomp": ("dop", "Дополнение"),
+    "amod": ("opred", "Определение"), "det": ("opred", "Определение"),
+    "nmod": ("opred", "Определение"), "acl": ("opred", "Определение"),
+    "advmod": ("ob", "Обстоятельство"), "parataxis": ("ob", "Обстоятельство"),
+}
 
+BASE_RELATION_DESC_MAP = {
+    "nsubj": "Подлежащее", "obj": "Дополнение", "iobj": "Дополнение",
+    "obl": "Дополнение", "xcomp": "Дополнение", "ccomp": "Дополнение",
+    "amod": "Определение", "det": "Определение", "nmod": "Определение",
+    "acl": "Определение", "advmod": "Обстоятельство", "advcl": "Обстоятельство",
+    "parataxis": "Обстоятельство", "root": "Сказуемое", "cop": "Связка",
+    "case": "Предлог", "cc": "Союз", "mark": "Союз", "nummod": "Числительное",
+    "aux": "Вспомогательный", "punct": "Пунктуация"
+}
+
+BASE_RELATION_TYPE_MAP = {
+    "nsubj": "pod", "obj": "dop", "iobj": "dop", "obl": "dop",
+    "xcomp": "dop", "ccomp": "dop", "amod": "opred", "det": "opred",
+    "nmod": "opred", "acl": "opred", "advmod": "ob", "parataxis": "ob",
+    "root": "skaz", "advcl": "skaz"
+}
+
+# коды завершения скрипта
 EXIT_OK = 0
 EXIT_USAGE_ERROR = 2
 EXIT_IO_ERROR = 3
@@ -125,30 +165,34 @@ EXIT_FILTERED = 5
 
 @dataclass
 class ProcessResult:
+    """Контейнер результата обработки текста"""
     status: str
     relations: List[str]
     message: str = ""
 
 
 def debug_log(message: str) -> None:
+    """Вывод отладочных сообщений в stderr если включён DEBUG"""
     if DEBUG_ENABLED:
         print(f"[DEBUG] {message}", file=sys.stderr)
 
 
 def configure_stdio() -> None:
-    # Keep existing encoding (cp1251/utf-8/etc), but never crash on non-representable characters.
+    """Защита от UnicodeEncodeError при выводе в консоль"""
     for stream in (sys.stdout, sys.stderr):
         if hasattr(stream, "reconfigure"):
             stream.reconfigure(errors="replace")
 
 
 def normalize_text(text: str) -> str:
+    """Удаление BOM, нормализация переносов строк, добавление финальной точки"""
     text = text.replace("\ufeff", "")
     text = text.replace("\r\n", "\n").replace("\r", "\n")
     return ensure_terminal_punctuation(text)
 
 
 def ensure_terminal_punctuation(text: str) -> str:
+    """Добавление точки в конец коротких осмысленных фраз, если ее нет"""
     stripped = text.strip()
     if not stripped or stripped[-1] in ".!?":
         return text
@@ -166,6 +210,7 @@ def ensure_terminal_punctuation(text: str) -> str:
 
 
 def sanitize_output_field(value: object, fallback: str = "_") -> str:
+    """Перед записью в вывод удаление BOM, переносов, замена '|' на '/', схлопывание пробелов"""
     s = "" if value is None else str(value)
     s = s.replace("\ufeff", "")
     s = s.replace("\r", " ").replace("\n", " ")
@@ -173,13 +218,14 @@ def sanitize_output_field(value: object, fallback: str = "_") -> str:
     s = SPACE_RE.sub(" ", s).strip()
     return s if s else fallback
 
-
+# эвристика, фильтры "белиберды"
 def is_suspicious_mixed_alnum_token(token: str) -> bool:
+    """кириллица перемешанная с цифрами"""
     cyrillic_count = 0
     digit_count = 0
     for ch in token:
         lower = ch.lower()
-        if ("\u0430" <= lower <= "\u044f") or lower == "\u0451":
+        if ("а" <= lower <= "я") or lower == "ё":
             cyrillic_count += 1
         elif ch.isdigit():
             digit_count += 1
@@ -187,6 +233,7 @@ def is_suspicious_mixed_alnum_token(token: str) -> bool:
 
 
 def contains_keyboard_run(word: str, min_run: int = 4) -> bool:
+    """наличие подряд идущих клавиш из одного ряда русской раскладки"""
     w = word.lower()
     if len(w) < min_run:
         return False
@@ -199,6 +246,7 @@ def contains_keyboard_run(word: str, min_run: int = 4) -> bool:
 
 
 def max_repeating_run(word: str) -> int:
+    """возвращает длину самой длинной последовательности одинаковых символов подряд"""
     if not word:
         return 0
     max_run = 1
@@ -214,6 +262,7 @@ def max_repeating_run(word: str) -> int:
 
 
 def max_consonant_run(word: str) -> int:
+    """возвращает длину самой длинной цепочки согласных"""
     run = 0
     max_run = 0
     for ch in word.lower():
@@ -230,6 +279,7 @@ def max_consonant_run(word: str) -> int:
 
 
 def contains_rare_cyrillic_cluster(word: str) -> bool:
+    """проверка на редкие/неестественные сочетания кириллицы"""
     w = word.lower()
     return any(cluster in w for cluster in RARE_CYRILLIC_CLUSTERS) or any(
         cluster in w for cluster in EXTRA_RARE_CYRILLIC_CLUSTERS
@@ -237,6 +287,7 @@ def contains_rare_cyrillic_cluster(word: str) -> bool:
 
 
 def count_impossible_y_bigrams(word: str) -> int:
+    """биграммы с буквой ы, которые невозможны"""
     w = word.lower()
     count = 0
     for i in range(len(w) - 1):
@@ -246,9 +297,10 @@ def count_impossible_y_bigrams(word: str) -> int:
 
 
 def has_hard_sign_anomaly(word: str) -> bool:
+    """твердый знак только перед е,ё,ю,я"""
     w = word.lower()
-    allowed_next = "\u0435\u0451\u044e\u044f"
-    hard_sign = "\u044a"
+    allowed_next = "еёюя"
+    hard_sign = "ъ"
     for i, ch in enumerate(w):
         if ch != hard_sign:
             continue
@@ -258,6 +310,7 @@ def has_hard_sign_anomaly(word: str) -> bool:
 
 
 def is_weird_mixed_case(word: str) -> bool:
+    """неестественный регистр"""
     letters = [ch for ch in word if ("а" <= ch.lower() <= "я") or ch.lower() == "ё"]
     if len(letters) < 3:
         return False
@@ -267,48 +320,110 @@ def is_weird_mixed_case(word: str) -> bool:
     if not (has_upper and has_lower):
         return False
 
-    # Нормальный title-case не считаем мусором.
+    # Нормальный title-case не считается мусором
     if letters[0].isupper() and all(ch.islower() for ch in letters[1:]):
         return False
 
     return True
 
-
-def get_suspicious_word_reasons(word: str) -> List[str]:
-    w = word.lower().strip("-")
+@lru_cache(maxsize=8192)
+def get_suspicious_word_reasons(word: str) -> Tuple[str, ...]:
+    """все проверки слов. возвращает список причин, по которым оно выглядит как шум."""
+    w = word.lower().strip("-") # w в нижнем регистре
     reasons: List[str] = []
+    
     if len(w) < 3:
-        return reasons
-    if is_weird_mixed_case(word):
-        reasons.append("\u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0440\u0435\u0433\u0438\u0441\u0442\u0440")
+        return ()
+        
+    if is_weird_mixed_case(word): # word в оригинальном регистре, так и задумано, все ок
+        # Проверка на хаотичный регистр буквы верхнего и нижнего регистра перемешаны без логики
+        # Встречается в спаме, капчах или сгенерированном мусоре
+        reasons.append("неестественный регистр")
+        
+    # слова длиннее 2 букв почти всегда содержат гласную
     if not any(ch in VOWELS_LOWER for ch in w):
-        reasons.append("\u0431\u0435\u0437 \u0433\u043b\u0430\u0441\u043d\u044b\u0445")
+        reasons.append("без гласных")
+    # для слов от 5 символов проверка на наличие невозможных сочетаний с буквой ы
     if len(w) >= 5 and count_impossible_y_bigrams(w) >= 1:
-        reasons.append("\u043c\u0430\u043b\u043e\u0432\u0435\u0440\u043e\u044f\u0442\u043d\u043e\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0435 \u0441 \u044b")
+        reasons.append("маловероятное сочетание с ы")
+    # поиск редких неестественных сочетаний кириллицы
     if len(w) >= 5 and contains_rare_cyrillic_cluster(w):
-        reasons.append("\u0440\u0435\u0434\u043a\u043e\u0435 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0435 \u0431\u0443\u043a\u0432")
+        reasons.append("редкое сочетание букв")
+    # твердый знак только перед еёюя или в конце слова после приставки на согласную
     if len(w) >= 4 and has_hard_sign_anomaly(w):
-        reasons.append("\u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0438\u0441\u043f\u043e\u043b\u044c\u0437\u043e\u0432\u0430\u043d\u0438\u0435 \u044a")
+        reasons.append("подозрительное использование ъ")
+    # 4+ клавиши идущие подряд "йцук" "фыва" "ячсм" итд
     if len(w) >= 4 and contains_keyboard_run(w, min_run=4):
-        reasons.append("\u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u043a\u043b\u0430\u0432\u0438\u0430\u0442\u0443\u0440\u043d\u044b\u0439 \u043d\u0430\u0431\u043e\u0440")
-    if len(w) >= 4 and len(w) >= 2 and w[-1] == w[-2] and w[-1] in VOWELS_LOWER:
-        reasons.append("\u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0443\u0434\u0432\u043e\u0435\u043d\u0438\u0435 \u0433\u043b\u0430\u0441\u043d\u043e\u0439")
+        reasons.append("похоже на клавиатурный набор")
+    # удвоение гласной в конце слова
+    if len(w) >= 4 and w[-1] == w[-2] and w[-1] in VOWELS_LOWER:
+        reasons.append("подозрительное удвоение гласной")
+    # 3+ одинаковых буквы подряд 
     if len(w) >= 5 and max_repeating_run(w) >= 3:
-        reasons.append("\u0434\u043b\u0438\u043d\u043d\u0430\u044f \u043f\u043e\u0432\u0442\u043e\u0440\u044f\u044e\u0449\u0430\u044f\u0441\u044f \u043f\u043e\u0441\u043b\u0435\u0434\u043e\u0432\u0430\u0442\u0435\u043b\u044c\u043d\u043e\u0441\u0442\u044c")
+        reasons.append("длинная повторяющаяся последовательность")
+    # 5+ согласных подряд
     if len(w) >= 6 and max_consonant_run(w) >= 5:
-        reasons.append("\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0439 \u043a\u043b\u0430\u0441\u0442\u0435\u0440 \u0441\u043e\u0433\u043b\u0430\u0441\u043d\u044b\u0445")
+        reasons.append("слишком много согласных подряд")
+    # проверка разнообразия символа в слове. если слово состоит из малого набора повторяющихся букв - это мусор
     if len(w) >= 6:
         unique_ratio = len(set(w)) / len(w)
         if unique_ratio < 0.35 or (len(w) >= 8 and unique_ratio < 0.46):
-            reasons.append("\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043d\u0438\u0437\u043a\u043e\u0435 \u0440\u0430\u0437\u043d\u043e\u043e\u0431\u0440\u0430\u0437\u0438\u0435 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432")
+            reasons.append("слишком низкое разнообразие символов")
+    # проверка доли гласных для длинных букв, если меньше 15% то текст похож на сгенерированную псевдокириллицу
     if len(w) >= 8:
         vowel_ratio = sum(1 for ch in w if ch in VOWELS_LOWER) / len(w)
         if vowel_ratio < 0.15:
-            reasons.append("\u0430\u043d\u043e\u043c\u0430\u043b\u044c\u043d\u043e \u043c\u0430\u043b\u043e \u0433\u043b\u0430\u0441\u043d\u044b\u0445")
-    return reasons
+            reasons.append("аномально мало гласных")
+            
+    return tuple(reasons)
 
+def _analyze_suspicious_words(words: List[str]) -> Dict:
+    """
+    Общая функция анализа подозрительных слов.
+    Принимает список слов, возвращает словарь со статистикой:
+    - suspicious_words: список подозрительных слов
+    - suspicious_ratio: доля подозрительных слов
+    - weird_case_count: количество слов с неестественным регистром
+    - rare_cluster_word_count: количество слов с редкими сочетаниями букв
+    - rare_cluster_ratio: доля слов с редкими сочетаниями
+    - repeated_noise: максимальное количество повторов одного шумового слова
+    - suspicious_details: список кортежей (слово, причины)
+    """
+    suspicious_details: List[Tuple[str, List[str]]] = []
+    for w in words:
+        reasons = get_suspicious_word_reasons(w)
+        if reasons:
+            suspicious_details.append((w, reasons))
 
+    suspicious_words = [w for w, _ in suspicious_details]
+    suspicious_ratio = len(suspicious_words) / len(words) if words else 0.0
+
+    weird_case_count = sum(
+        1 for _, reasons in suspicious_details if "неестественный регистр" in reasons
+    )
+
+    rare_cluster_word_count = sum(
+        1 for w in words if len(w) >= 5 and contains_rare_cyrillic_cluster(w)
+    )
+    rare_cluster_ratio = rare_cluster_word_count / len(words) if words else 0.0
+
+    repeated_noise = max(
+        Counter(w.lower() for w in suspicious_words).values(), default=0
+    )
+
+    return {
+        "suspicious_words": suspicious_words,
+        "suspicious_ratio": suspicious_ratio,
+        "weird_case_count": weird_case_count,
+        "rare_cluster_word_count": rare_cluster_word_count,
+        "rare_cluster_ratio": rare_cluster_ratio,
+        "repeated_noise": repeated_noise,
+        "suspicious_details": suspicious_details,
+    }
+
+# оценка качества текста 
 def looks_like_short_sentence(text: str, words: Sequence[str]) -> bool:
+    """короткое, но осмысленное предложение"""
     stripped = text.strip()
     if not stripped or stripped[-1] not in ".!?":
         return False
@@ -325,92 +440,87 @@ def evaluate_raw_text_quality(
     vowel_max: float = 0.70,
     avg_word_max: float = 14.0,
 ) -> Tuple[bool, str]:
+    """оценка до запуска наташи, проверяет долю кириллицы, соотношение гласных, среднюю длину слова, долю
+    подозрительных слов, редкие кластеры, странный регистр, повторы, долю типичных слов"""
+    # подсчет кириллицы, если меньше 5 букв, то текст не русский
     cyrillic_chars = CYRILLIC_CHAR_RE.findall(text)
-    debug_log(f"\u041a\u0438\u0440\u0438\u043b\u043b\u0438\u0447\u0435\u0441\u043a\u0438\u0445 \u0441\u0438\u043c\u0432\u043e\u043b\u043e\u0432: {len(cyrillic_chars)}")
-
+    debug_log(f"Кириллических символов: {len(cyrillic_chars)}")
+    # очистка регулярными выражениями от дефисов, фильтрация пустых строк
     words = [w.strip("-") for w in CYRILLIC_WORD_RE.findall(text)]
     words = [w for w in words if w]
+    # если мало кириллицы, проверка на короткое осмысленное предложение
     if len(cyrillic_chars) < 5:
         if looks_like_short_sentence(text, words):
-            debug_log("Short plausible sentence bypassed low-cyrillic filter")
+            debug_log("Короткое правдоподобное предложение обошло фильтр")
         else:
-            return True, "\u043c\u0430\u043b\u043e \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u044b"
-
+            return True, "мало кириллицы"
+    # если нет слов текст сразу отклоняется
     if not words:
-        return True, "\u043d\u0435\u0442 \u0441\u043b\u043e\u0432"
-
+        return True, "нет слов"
+    # поиск смешанных кириллица+цифры слов, признак мусора
     mixed_alnum_count = sum(1 for token in re.findall(r"\S+", text) if is_suspicious_mixed_alnum_token(token))
-    debug_log(f"\u0421\u043c\u0435\u0448\u0430\u043d\u043d\u044b\u0445 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u0430+\u0446\u0438\u0444\u0440\u044b \u0442\u043e\u043a\u0435\u043d\u043e\u0432: {mixed_alnum_count}")
+    debug_log(f"Смешанных кириллица+цифры токенов: {mixed_alnum_count}")
     if mixed_alnum_count >= 1:
-        return True, "\u043f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u043e\u0435 \u0441\u043c\u0435\u0448\u0435\u043d\u0438\u0435 \u043a\u0438\u0440\u0438\u043b\u043b\u0438\u0446\u044b \u0438 \u0446\u0438\u0444\u0440"
-
+        return True, "подозрительное смешение кириллицы и цифр"
+    # проверка доли гласных во всем тексте
     vowel_ratio = sum(1 for c in cyrillic_chars if c in VOWELS) / len(cyrillic_chars)
-    debug_log(f"\u0421\u043e\u043e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u0433\u043b\u0430\u0441\u043d\u044b\u0445: {vowel_ratio:.3f} (\u043d\u043e\u0440\u043c\u0430: {vowel_min}-{vowel_max})")
+    debug_log(f"Соотношение гласных: {vowel_ratio:.3f} (норма: {vowel_min}-{vowel_max})")
     if vowel_ratio < vowel_min or vowel_ratio > vowel_max:
-        return True, "\u0430\u043d\u043e\u043c\u0430\u043b\u044c\u043d\u043e\u0435 \u0441\u043e\u043e\u0442\u043d\u043e\u0448\u0435\u043d\u0438\u0435 \u0433\u043b\u0430\u0441\u043d\u044b\u0445"
-
+        return True, "аномальное соотношение гласных"
+    # расчет средней длины слова, слишком длинные - шум
     avg_len = sum(len(w) for w in words) / len(words)
-    debug_log(f"\u0421\u0440\u0435\u0434\u043d\u044f\u044f \u0434\u043b\u0438\u043d\u0430 \u0441\u043b\u043e\u0432\u0430: {avg_len:.2f} (\u043c\u0430\u043a\u0441: {avg_word_max})")
+    debug_log(f"Средняя длина слова: {avg_len:.2f} (макс: {avg_word_max})")
     if avg_len > avg_word_max:
-        return True, "\u0441\u043b\u043e\u0432\u0430 \u0441\u043b\u0438\u0448\u043a\u043e\u043c \u0434\u043b\u0438\u043d\u043d\u044b\u0435"
+        return True, "слова слишком длинные"
+    susp_stats = _analyze_suspicious_words(words)
+    suspicious_words = susp_stats["suspicious_words"]
+    suspicious_ratio = susp_stats["suspicious_ratio"]
+    weird_case_count = susp_stats["weird_case_count"]
+    rare_cluster_word_count = susp_stats["rare_cluster_word_count"]
+    rare_cluster_ratio = susp_stats["rare_cluster_ratio"]
+    repeated_noise = susp_stats["repeated_noise"]
 
-    suspicious_details: List[Tuple[str, List[str]]] = []
-    for w in words:
-        reasons = get_suspicious_word_reasons(w)
-        if reasons:
-            suspicious_details.append((w, reasons))
+    debug_log(f"Подозрительных слов: {len(suspicious_words)}/{len(words)} = {suspicious_ratio:.3f}")
+    debug_log(f"Слов с редкими сочетаниями: {rare_cluster_word_count}/{len(words)} = {rare_cluster_ratio:.3f}")
+    debug_log(f"Неестественный регистр: {weird_case_count}, повтор одного шумового слова: {repeated_noise}")
 
-    suspicious_words = [w for w, _ in suspicious_details]
-    suspicious_ratio = len(suspicious_words) / len(words)
-    debug_log(f"\u041f\u043e\u0434\u043e\u0437\u0440\u0438\u0442\u0435\u043b\u044c\u043d\u044b\u0445 \u0441\u043b\u043e\u0432: {len(suspicious_words)}/{len(words)} = {suspicious_ratio:.3f}")
-
-    rare_cluster_word_count = sum(1 for w in words if len(w) >= 5 and contains_rare_cyrillic_cluster(w))
-    rare_cluster_ratio = rare_cluster_word_count / len(words)
-    debug_log(
-        f"\u0421\u043b\u043e\u0432 \u0441 \u0440\u0435\u0434\u043a\u0438\u043c\u0438 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u044f\u043c\u0438: "
-        f"{rare_cluster_word_count}/{len(words)} = {rare_cluster_ratio:.3f}"
-    )
-
+    # подсчет слов которые есть почти во всех текстах
     stopword_count = sum(1 for w in words if w.lower() in COMMON_RU_STOPWORDS)
     stopword_ratio = stopword_count / len(words)
-    debug_log(f"\u0421\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0445 \u0440\u0443\u0441\u0441\u043a\u0438\u0445 \u0441\u043b\u043e\u0432: {stopword_count}/{len(words)} = {stopword_ratio:.3f}")
-
-    weird_case_count = sum(1 for _, reasons in suspicious_details if "\u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0440\u0435\u0433\u0438\u0441\u0442\u0440" in reasons)
-    repeated_noise = max(Counter(w.lower() for w in suspicious_words).values(), default=0)
-    debug_log(
-        f"\u041d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u0439 \u0440\u0435\u0433\u0438\u0441\u0442\u0440: {weird_case_count}, "
-        f"\u043f\u043e\u0432\u0442\u043e\u0440 \u043e\u0434\u043d\u043e\u0433\u043e \u0448\u0443\u043c\u043e\u0432\u043e\u0433\u043e \u0441\u043b\u043e\u0432\u0430: {repeated_noise}"
-    )
-
+    debug_log(f"Служебных русских слов: {stopword_count}/{len(words)} = {stopword_ratio:.3f}")
+    
+    # отсев при высокой доле мусора
     if (
         (len(words) >= 3 and suspicious_ratio >= 0.55)
         or (len(words) >= 4 and suspicious_ratio >= 0.50)
         or (len(words) >= 6 and suspicious_ratio >= 0.40)
     ):
         preview = ", ".join(suspicious_words[:5])
-        return True, f"\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043c\u0443\u0441\u043e\u0440\u043d\u044b\u0445 \u0441\u043b\u043e\u0432 ({preview})"
+        return True, f"слишком много мусорных слов ({preview})"
+    # отсев при высокой доле редких буквосочетаний
     if len(words) >= 8 and rare_cluster_ratio >= 0.25:
-        return True, "\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u043c\u0430\u043b\u043e\u0432\u0435\u0440\u043e\u044f\u0442\u043d\u044b\u0445 \u0441\u043e\u0447\u0435\u0442\u0430\u043d\u0438\u0439 \u0431\u0443\u043a\u0432"
+        return True, "слишком много маловероятных сочетаний букв"
+    # отсев при множестве слов со странным регистром
     if len(words) >= 8 and weird_case_count >= 2 and suspicious_ratio >= 0.15:
-        return True, "\u0441\u043b\u0438\u0448\u043a\u043e\u043c \u043c\u043d\u043e\u0433\u043e \u0441\u043b\u043e\u0432 \u0441 \u043d\u0435\u0435\u0441\u0442\u0435\u0441\u0442\u0432\u0435\u043d\u043d\u044b\u043c \u0440\u0435\u0433\u0438\u0441\u0442\u0440\u043e\u043c"
+        return True, "слишком много слов с неестественным регистром"
+    
+    # отсев при повторе одного шумового слова в большом количестве
     if len(words) >= 8 and repeated_noise >= 2 and suspicious_ratio >= 0.15:
-        return True, "\u043c\u043d\u043e\u0433\u043e \u043f\u043e\u0432\u0442\u043e\u0440\u044f\u044e\u0449\u0435\u0433\u043e\u0441\u044f \u0448\u0443\u043c\u043e\u0432\u043e\u0433\u043e \u0441\u043b\u043e\u0432\u0430"
+        return True, "много повторяющегося шумового слова"
+    # проверка на псевдорусский текст при малом числе слов, которые встречаются во всех текстах
     if len(words) >= 12 and stopword_ratio < 0.10 and suspicious_ratio >= 0.20:
-        return True, "\u043f\u043e\u0445\u043e\u0436\u0435 \u043d\u0430 \u043f\u0441\u0435\u0432\u0434\u043e\u0440\u0443\u0441\u0441\u043a\u0438\u0439 \u0442\u0435\u043a\u0441\u0442"
+        return True, "похоже на псевдорусский текст"
+    # для длинных текстов аномально низкая доля слов, которые встречаются во всех текстах
     if len(words) >= 30 and stopword_ratio < 0.03:
-        return True, "\u0430\u043d\u043e\u043c\u0430\u043b\u044c\u043d\u043e \u043c\u0430\u043b\u043e \u0441\u043b\u0443\u0436\u0435\u0431\u043d\u044b\u0445 \u0441\u043b\u043e\u0432 \u0434\u043b\u044f \u0440\u0443\u0441\u0441\u043a\u043e\u0433\u043e \u0442\u0435\u043a\u0441\u0442\u0430"
+        return True, "аномально мало служебных слов для русского текста"
 
-    return False, ""
-
-    """dead code removed
-            return True, "С‚РµРєСЃС‚ СЃРѕРґРµСЂР¶РёС‚ СЃР»РёС€РєРѕРј РјРЅРѕРіРѕ РјР°Р»РѕРІРµСЂРѕСЏС‚РЅС‹С… СЃРѕС‡РµС‚Р°РЅРёР№ Р±СѓРєРІ"
-    # dead code removed
-            return True, "С‚РµРєСЃС‚ РїРѕС…РѕР¶ РЅР° РїСЃРµРІРґРѕСЂСѓСЃСЃРєРёР№"
-
-    """
     return False, ""
 
 def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
+    """оценка качества после работы наташи
+    оценка доли нераспознаных токеноы X, кол-во синтаксических основ на предложение,
+    распределение частей речи (noun|adj vs verb vs служебные),
+    повторяемость мусорных токенов"""
     meaningful = [t for t in doc.tokens if t.pos not in ("PUNCT", "SPACE")]
     if not meaningful:
         return True, "нет осмысленных токенов"
@@ -457,35 +567,19 @@ def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
         return True, "аномальный POS-профиль (похоже на псевдотекст)"
     if len(token_words) >= 30 and token_stopword_ratio < 0.03:
         return True, "аномально мало служебных токенов"
-
     if token_words:
-        suspicious_details: List[Tuple[str, List[str]]] = []
-        for w in token_words:
-            reasons = get_suspicious_word_reasons(w)
-            if reasons:
-                suspicious_details.append((w, reasons))
+        # сбор статистики по подозрительным токенам через общую функцию
+        susp_stats = _analyze_suspicious_words(token_words)
+        suspicious_tokens = susp_stats["suspicious_words"]
+        suspicious_ratio = susp_stats["suspicious_ratio"]
+        weird_case_count = susp_stats["weird_case_count"]
+        rare_cluster_word_count = susp_stats["rare_cluster_word_count"]
+        rare_cluster_ratio = susp_stats["rare_cluster_ratio"]
+        repeated_noise = susp_stats["repeated_noise"]
 
-        suspicious_tokens = [w for w, _ in suspicious_details]
-        suspicious_ratio = len(suspicious_tokens) / len(token_words)
-        debug_log(
-            f"Подозрительных токенов: {len(suspicious_tokens)}/{len(token_words)} = {suspicious_ratio:.3f}"
-        )
-
-        weird_case_count = sum(1 for _, reasons in suspicious_details if "неестественный регистр" in reasons)
-        rare_cluster_token_count = sum(
-            1 for w in token_words if len(w) >= 5 and contains_rare_cyrillic_cluster(w)
-        )
-        rare_cluster_ratio = rare_cluster_token_count / len(token_words)
-        debug_log(
-            f"РўРѕРєРµРЅРѕРІ СЃ СЂРµРґРєРёРјРё СЃРѕС‡РµС‚Р°РЅРёСЏРјРё: "
-            f"{rare_cluster_token_count}/{len(token_words)} = {rare_cluster_ratio:.3f}"
-        )
-
-        repeated_noise = max(Counter(w.lower() for w in suspicious_tokens).values(), default=0)
-        debug_log(
-            f"Токены с неестественным регистром: {weird_case_count}, "
-            f"повтор одного шумового токена: {repeated_noise}"
-        )
+        debug_log(f"Подозрительных токенов: {len(suspicious_tokens)}/{len(token_words)} = {suspicious_ratio:.3f}")
+        debug_log(f"Токенов с редкими сочетаниями: {rare_cluster_word_count}/{len(token_words)} = {rare_cluster_ratio:.3f}")
+        debug_log(f"Токены с неестественным регистром: {weird_case_count}, повтор одного шумового токена: {repeated_noise}")
 
         if (
             (len(token_words) >= 4 and suspicious_ratio >= 0.50)
@@ -500,15 +594,17 @@ def evaluate_doc_quality(doc: Doc) -> Tuple[bool, str]:
 
     return False, ""
 
-
+# синтаксические зависимости
 def get_root_member_info(token) -> Tuple[str, str]:
+    """сказуемое или нет"""
     pos = getattr(token, "pos", None)
     if pos in {"VERB", "AUX"}:
         return "skaz", "Сказуемое"
     return "none", "Другое"
 
 
-def get_conj_member_info(token, sent) -> Tuple[str, str]:
+def get_conj_member_info(token, sent, token_by_id: Dict[str, object]) -> Tuple[str, str]:
+    """для сочиненных слов conj поиск синтаксической роли с помощью дерева"""
     if not hasattr(token, "head_id") or token.head_id is None:
         return "none", "Другое"
 
@@ -522,31 +618,16 @@ def get_conj_member_info(token, sent) -> Tuple[str, str]:
         if hasattr(current_token, "id"):
             visited.add(current_token.id)
 
-        head_token = next((t for t in sent.tokens if hasattr(t, "id") and t.id == current_token.head_id), None)
+        head_token = token_by_id.get(current_token.head_id)
         if not head_token:
             break
 
         rel = head_token.rel if hasattr(head_token, "rel") else None
-        mapping = {
-            "nsubj": ("pod", "Подлежащее"),
-            "root": ("skaz", "Сказуемое"),
-            "advcl": ("skaz", "Сказуемое"),
-            "obj": ("dop", "Дополнение"),
-            "iobj": ("dop", "Дополнение"),
-            "obl": ("dop", "Дополнение"),
-            "xcomp": ("dop", "Дополнение"),
-            "ccomp": ("dop", "Дополнение"),
-            "amod": ("opred", "Определение"),
-            "det": ("opred", "Определение"),
-            "nmod": ("opred", "Определение"),
-            "acl": ("opred", "Определение"),
-            "advmod": ("ob", "Обстоятельство"),
-            "parataxis": ("ob", "Обстоятельство"),
-        }
+        
         if rel == "root":
             return get_root_member_info(head_token)
-        if rel in mapping:
-            return mapping[rel]
+        if rel in CONJ_ROLE_MAP:
+            return CONJ_ROLE_MAP[rel]
         if rel == "conj":
             current_token = head_token
             continue
@@ -554,66 +635,28 @@ def get_conj_member_info(token, sent) -> Tuple[str, str]:
     return "none", "Другое"
 
 
-def get_relation_description(relation, token=None, sent=None) -> str:
+def get_relation_description(relation, token=None, sent=None, token_by_id=None) -> str:
+    """Перевод терминов Наташи на русский"""
     if relation == "root" and token:
         _, desc = get_root_member_info(token)
         return desc
-    base_desc = {
-        "nsubj": "Подлежащее",
-        "obj": "Дополнение",
-        "iobj": "Дополнение",
-        "obl": "Дополнение",
-        "xcomp": "Дополнение",
-        "ccomp": "Дополнение",
-        "amod": "Определение",
-        "det": "Определение",
-        "nmod": "Определение",
-        "acl": "Определение",
-        "advmod": "Обстоятельство",
-        "advcl": "Обстоятельство",
-        "parataxis": "Обстоятельство",
-        "root": "Сказуемое",
-        "cop": "Связка",
-        "case": "Предлог",
-        "cc": "Союз",
-        "mark": "Союз",
-        "nummod": "Числительное",
-        "aux": "Вспомогательный",
-        "punct": "Пунктуация",
-    }
-    if relation == "conj" and token and sent:
-        _, desc = get_conj_member_info(token, sent)
+    if relation == "conj" and token and sent and token_by_id:
+        _, desc = get_conj_member_info(token, sent, token_by_id)
         return desc
-    return base_desc.get(relation, "Другое")
+    return BASE_RELATION_DESC_MAP.get(relation, "Другое")
 
-
-def get_relation_type(relation, token=None, sent=None) -> str:
+def get_relation_type(relation, token=None, sent=None, token_by_id=None) -> str:
+    """Короткий тип связи для обработки"""
     if relation == "root" and token:
         rel_type, _ = get_root_member_info(token)
         return rel_type
-    base_type = {
-        "nsubj": "pod",
-        "obj": "dop",
-        "iobj": "dop",
-        "obl": "dop",
-        "xcomp": "dop",
-        "ccomp": "dop",
-        "amod": "opred",
-        "det": "opred",
-        "nmod": "opred",
-        "acl": "opred",
-        "advmod": "ob",
-        "parataxis": "ob",
-        "root": "skaz",
-        "advcl": "skaz",
-    }
-    if relation == "conj" and token and sent:
-        rel_type, _ = get_conj_member_info(token, sent)
+    if relation == "conj" and token and sent and token_by_id:
+        rel_type, _ = get_conj_member_info(token, sent, token_by_id)
         return rel_type
-    return base_type.get(relation, "none")
-
+    return BASE_RELATION_TYPE_MAP.get(relation, "none")
 
 def get_pos_russian(pos: str) -> str:
+    """перевод тегов на русский"""
     pos_map = {
         "NOUN": "существительное",
         "VERB": "глагол",
@@ -636,8 +679,9 @@ def get_pos_russian(pos: str) -> str:
     }
     return pos_map.get(pos, pos)
 
-
+# ядро анализа, извлечение данных
 def analyze_syntax(text: str) -> Doc:
+    """сегментация-морфология-синтаксис-лемматизация"""
     doc = Doc(text)
     doc.segment(segmenter)
     doc.tag_morph(morph_tagger)
@@ -648,6 +692,7 @@ def analyze_syntax(text: str) -> Doc:
 
 
 def extract_syntax_relations(doc: Doc) -> List[str]:
+    """строки вида СЛОВО|POS|REL|HEAD_WORD|SENT_NUM|TYPE|DESC|POS_RU"""
     relations: List[str] = []
     for sent_num, sent in enumerate(doc.sents, 1):
         original_text = sanitize_output_field(sent.text, fallback="")
@@ -659,37 +704,28 @@ def extract_syntax_relations(doc: Doc) -> List[str]:
         for item in sent.tokens:
             if hasattr(item, "id"):
                 token_by_id[item.id] = item
-
+                
         for token in sent.tokens:
             if token.pos in ("SPACE", "PUNCT"):
                 continue
-
             head_word = "_"
             if token.head_id is not None and token.head_id in token_by_id:
                 head_word = sanitize_output_field(token_by_id[token.head_id].text)
 
-            relation_type = get_relation_type(token.rel, token, sent)
-            relation_desc = get_relation_description(token.rel, token, sent)
+            relation_type = get_relation_type(token.rel, token, sent, token_by_id)
+            relation_desc = get_relation_description(token.rel, token, sent, token_by_id)
             pos_ru = get_pos_russian(token.pos)
-
-            relations.append(
-                "|".join(
-                    [
-                        sanitize_output_field(token.text),
-                        sanitize_output_field(token.pos),
-                        sanitize_output_field(token.rel),
-                        sanitize_output_field(head_word),
-                        str(sent_num),
-                        sanitize_output_field(relation_type),
-                        sanitize_output_field(relation_desc),
-                        sanitize_output_field(pos_ru),
-                    ]
-                )
-            )
+            relations.append("|".join([
+                sanitize_output_field(token.text), sanitize_output_field(token.pos),
+                sanitize_output_field(token.rel), sanitize_output_field(head_word),
+                str(sent_num), sanitize_output_field(relation_type),
+                sanitize_output_field(relation_desc), sanitize_output_field(pos_ru)
+            ]))
     return relations
 
-
+# ввод-вывод
 def create_formatted_file_from_text(text: str, output_file: str) -> bool:
+    """Запись исходного пронумерованного текста в _formatted.txt"""
     try:
         text = normalize_text(text).strip()
         doc = Doc(text)
@@ -704,13 +740,14 @@ def create_formatted_file_from_text(text: str, output_file: str) -> bool:
         print(f"Ошибка создания форматированного файла: {exc}", file=sys.stderr)
         return False
 
-
-def should_create_formatted_file(input_file: str) -> bool:
+#Предотвращает бесконечную рекурсию: не создаёт файл, если входной уже имеет суффикс _formatted
+def should_create_formatted_file(input_file: str) -> bool: 
     base_name = os.path.splitext(input_file)[0].lower()
     return not base_name.endswith("_formatted")
 
 
 def process_text(text: str) -> ProcessResult:
+    """Главная функция анализа. Очищает текст, проверяет на мусор, проводит разбор и возвращает результат."""
     text = normalize_text(text).strip()
     if not text:
         return ProcessResult(status="filtered", relations=[], message="пустой текст")
@@ -741,12 +778,13 @@ def process_text(text: str) -> ProcessResult:
 
 
 def read_input_file(path: str) -> str:
-    # utf-8-sig removes BOM automatically and prevents crashes on output.
+    """Чтение файла в кодировке utf-8-sig (автоматически убирает BOM)."""
     with open(path, "r", encoding="utf-8-sig") as f:
         return f.read()
 
 
 def parse_input_path(argv: Sequence[str]) -> Optional[str]:
+    """ожидает ровно один путь к файлу"""
     if len(argv) < 2:
         return None
     return argv[1]

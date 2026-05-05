@@ -85,7 +85,7 @@ private:
     void setupPythonProcess();
     void updateAllCheckboxState();
     QString createTempFileWithText(const QString& text);
-    bool loadFile(const QString& filePath);
+    //bool loadFile(const QString& filePath);
     void processPythonOutput(const QString& output);
     bool shouldShowWord(const WordInfo& word);
     void updateDisplay();
@@ -100,7 +100,6 @@ private:
     void updateStatisticsDisplayWithFilter();  // новый метод;
     void showPlaceholderStatistics();
     void showPlaceholderInResults();
-    void showResultsPage();
     void showPlaceholderWordFreq();
     void showWordFreqResults();
     bool isUtf8File(const QString& filePath);
