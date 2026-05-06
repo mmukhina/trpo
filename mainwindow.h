@@ -77,6 +77,7 @@ private:
     QMap<QString, QMap<QString, int>> wordRoleStats;
     Statistics stats;
     QString analyzedText;
+    QString lastPythonError;
 
     void calculateWordRoleStats();
     void updateWordRoleDisplay();
